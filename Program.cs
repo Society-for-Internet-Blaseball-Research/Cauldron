@@ -9,6 +9,7 @@ namespace Cauldron
 		static void Main(string[] args)
 		{
 
+			// TODO: more responsible error checking and USAGE output if args are wrong
 			string inputFile = args[0];
 			string outputFile = args[1];
 

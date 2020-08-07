@@ -107,10 +107,17 @@ namespace Cauldron
             }
             currEvent.totalFouls = m_numFouls;
 
-            // TODO This doesn't work for the third out - outs never reach 3
-            currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
+            // If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
+            if(newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
+            {
+                currEvent.outsOnPlay = 1;
+            }
+            else
+            {
+                currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
+            }
 
-            // Do we need a better method to track RBIs?
+            // TODO: we need a better method to track RBIs
             // Stealing home can happen, for one thing
             currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
 
