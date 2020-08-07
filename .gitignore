@@ -1,4 +1,6 @@
-obj/
-bin/Debug/
 .vs/
-bin/Release/netcoreapp3.1/blaseball-sample-log.json
+Cauldron/obj/
+CauldronCli/bin/Debug/
+Cauldron/bin/Debug/
+CauldronCli/bin/Release/netcoreapp3.1/blaseball-sample-log.json
+CauldronCli/obj/

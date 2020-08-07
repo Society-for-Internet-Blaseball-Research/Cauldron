@@ -3,10 +3,11 @@ Put in blaseball game update JSON, and pull out SIBR game event JSON
 
 Run from the command line:
 
-	Cauldron.exe [input file in newline-delimited JSON format] [output file in newline-delimited JSON format]
+	CauldronCli.exe [input file in newline-delimited JSON format] [output file in newline-delimited JSON format]
 
 ## TODO
 
+* Convert this to a library with wrapping commandline tester
 * Handle partial games by ignoring them and printing a warning
 * Ignore duplicate updates after the game is over
 * Change to emit one event per plate appearance (roughly)

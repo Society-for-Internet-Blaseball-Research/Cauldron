@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json;
+using Cauldron;
 
-namespace Cauldron
+namespace CauldronCli
 {
 	class Program
 	{
@@ -16,7 +17,7 @@ namespace Cauldron
 			StreamReader sr = new StreamReader(inputFile);
 			StreamWriter sw = new StreamWriter(outputFile);
 
-			Cauldron c = new Cauldron();
+			Processor c = new Processor();
 			c.Process(sr, sw);
 
 			sw.Close();

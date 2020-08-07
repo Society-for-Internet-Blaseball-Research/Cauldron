@@ -19,10 +19,8 @@ namespace Cauldron
         // State tracking for stats not tracked inherently in the state updates
         int m_eventIndex = 0;
         string m_currentBatter = null;
-        string m_currentBatterName = null;
         string m_currentBatterTeam = null;
         string m_currentPitcher = null;
-        string m_currentPitcherName = null;
         string m_currentPitcherTeam = null;
         int m_numFouls = 0;
 
@@ -31,10 +29,8 @@ namespace Cauldron
             m_oldState = initState;
             m_eventIndex = 0;
             m_currentBatter = null;
-            m_currentBatterName = null;
             m_currentBatterTeam = null;
             m_currentPitcher = initState.awayPitcher;
-            m_currentPitcherName = initState.awayPitcherName;
             m_currentPitcherTeam = initState.awayTeam;
             m_numFouls = 0;
         }
@@ -42,9 +38,9 @@ namespace Cauldron
         private void UpdateBatterAndPitcher(Game newState)
         {
             // Pitchers
-            if(m_oldState.inning != newState.inning || m_oldState.topOfInning != newState.topOfInning)
+            if (m_oldState.inning != newState.inning || m_oldState.topOfInning != newState.topOfInning)
             {
-                if(newState.topOfInning)
+                if (newState.topOfInning)
                 {
                     m_currentPitcher = newState.awayPitcher;
                     m_currentPitcherTeam = newState.awayTeam;
@@ -58,7 +54,7 @@ namespace Cauldron
             // Batters
             string batter = "";
             string batterTeam = "";
-            if(newState.topOfInning)
+            if (newState.topOfInning)
             {
                 batter = newState.awayBatter;
                 batterTeam = newState.awayTeam;
@@ -70,7 +66,7 @@ namespace Cauldron
             }
 
             // Did the batter change?
-            if(batter != "" && batter != m_currentBatter)
+            if (batter != "" && batter != m_currentBatter)
             {
                 m_currentBatter = batter;
                 m_currentBatterTeam = batterTeam;
@@ -101,14 +97,14 @@ namespace Cauldron
             currEvent.totalStrikes = newState.atBatStrikes;
             currEvent.totalBalls = newState.atBatBalls;
 
-            if(newState.lastUpdate.Contains("Foul Ball"))
+            if (newState.lastUpdate.Contains("Foul Ball"))
             {
                 m_numFouls++;
             }
             currEvent.totalFouls = m_numFouls;
 
             // If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
-            if(newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
+            if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
             {
                 currEvent.outsOnPlay = 1;
             }
@@ -127,36 +123,36 @@ namespace Cauldron
                 currEvent.basesHit = 1;
                 currEvent.batterBaseAfterPlay = 1;
             }
-            else if(newState.lastUpdate.Contains("hits a Double"))
+            else if (newState.lastUpdate.Contains("hits a Double"))
             {
                 currEvent.basesHit = 2;
                 currEvent.batterBaseAfterPlay = 2;
             }
-            else if(newState.lastUpdate.Contains("hits a Triple"))
+            else if (newState.lastUpdate.Contains("hits a Triple"))
             {
                 currEvent.basesHit = 3;
                 currEvent.batterBaseAfterPlay = 3;
             }
-            else if(newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
+            else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
             {
                 currEvent.basesHit = 4;
                 currEvent.batterBaseAfterPlay = 4;
             }
 
             // Sacrifice outs
-            if(newState.lastUpdate.Contains("sacrifice"))
+            if (newState.lastUpdate.Contains("sacrifice"))
             {
                 currEvent.isSacrificeHit = true;
             }
-            
+
             // Double plays
-            if(newState.lastUpdate.Contains("double play"))
+            if (newState.lastUpdate.Contains("double play"))
             {
                 currEvent.isDoublePlay = true;
             }
 
             // Triple plays
-            if(newState.lastUpdate.Contains("triple play"))
+            if (newState.lastUpdate.Contains("triple play"))
             {
                 currEvent.isTriplePlay = true;
             }
@@ -189,6 +185,6 @@ namespace Cauldron
             return currEvent;
         }
 
-        
+
     }
 }

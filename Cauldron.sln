@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cauldron", "Cauldron.csproj", "{50AEBCB0-110C-4478-9035-AD09893B17BC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cauldron", "Cauldron\Cauldron.csproj", "{C2E81832-67B1-471C-AEF0-8C5092DC3224}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CauldronCli", "CauldronCli\CauldronCli.csproj", "{3653058B-04DE-493A-816E-BCCA21DAFA62}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{50AEBCB0-110C-4478-9035-AD09893B17BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{50AEBCB0-110C-4478-9035-AD09893B17BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{50AEBCB0-110C-4478-9035-AD09893B17BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{50AEBCB0-110C-4478-9035-AD09893B17BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2E81832-67B1-471C-AEF0-8C5092DC3224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2E81832-67B1-471C-AEF0-8C5092DC3224}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2E81832-67B1-471C-AEF0-8C5092DC3224}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2E81832-67B1-471C-AEF0-8C5092DC3224}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3653058B-04DE-493A-816E-BCCA21DAFA62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3653058B-04DE-493A-816E-BCCA21DAFA62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3653058B-04DE-493A-816E-BCCA21DAFA62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3653058B-04DE-493A-816E-BCCA21DAFA62}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

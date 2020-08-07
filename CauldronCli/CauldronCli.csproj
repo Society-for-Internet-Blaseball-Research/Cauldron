@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Cauldron\Cauldron.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="blaseball-sample-log.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CauldronCli": {
+      "commandName": "Project",
+      "commandLineArgs": "blaseball-sample-log.json sample-output.json"
+    }
+  }
+}

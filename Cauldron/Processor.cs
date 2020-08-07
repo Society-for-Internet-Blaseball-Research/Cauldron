@@ -9,7 +9,7 @@ namespace Cauldron
 	/// <summary>
 	/// Basic processor that reads game update JSON objects from a stream and writes GameEvent JSON objects out
 	/// </summary>
-	class Cauldron
+	public class Processor
 	{
 		/// <summary>
 		/// Parser has state, so store one per game we're tracking
@@ -19,7 +19,7 @@ namespace Cauldron
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public Cauldron()
+		public Processor()
 		{
 			m_trackedGames = new Dictionary<string, GameEventParser>();
 		}
