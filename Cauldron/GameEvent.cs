@@ -46,7 +46,7 @@ namespace Cauldron
         public bool isLeadoff { get; set; }
         public bool isPinchHit { get; set; }
         public int lineupPosition { get; set; }
-        public bool isLastEventForAtBat { get; set; }
+        public bool isLastEventForPlateAppearance { get; set; }
         public int basesHit { get; set; }
         public int runsBattedIn { get; set; }
         public bool isSacrificeHit { get; set; }
@@ -63,7 +63,7 @@ namespace Cauldron
         public bool isLastGameEvent { get; set; }
         public string additionalContext { get; set; }
         public bool topOfInning { get; set; }
-
+        public List<string> eventText { get; set; }
         public override string ToString()
         {
             return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";

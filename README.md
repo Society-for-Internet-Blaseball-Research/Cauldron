@@ -7,24 +7,20 @@ Run from the command line:
 
 ## TODO
 
-* Convert this to a library with wrapping commandline tester
 * Handle partial games by ignoring them and printing a warning
-* Ignore duplicate updates after the game is over
-* Change to emit one event per plate appearance (roughly)
+* Handle steals
 	* Steals should emit the current apperance so far, ended by the steal
 	* We should then start a new event for the rest of that appearance
 
 ## Unimplemented Fields
 
 * `eventType`
-* `batterCount`
 * `pitchesList`
 * `isLeadoff`
 * `lineupPosition`
 * `battedBallType`
 * `baseRunners`
 	* This is an array of `GameEventBaseRunner` sub-objects that aren't yet implemented
-* `isLastEventForAtBat`
 
 ## Known Wrong Fields
 

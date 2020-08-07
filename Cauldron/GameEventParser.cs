@@ -6,185 +6,207 @@ using System.Threading.Tasks;
 
 namespace Cauldron
 {
-    /// <summary>
-    /// Basic parser that takes Game json updates and emits GameEvent json objects
-    /// PLEASE NOTE this is probably wrong; I'm currently emitting one GameEvent per game update but
-    /// ultimately we want a Retrosheet-style condensed description of the whole "play" as a single GameEvent
-    /// </summary>
-    class GameEventParser
-    {
-        // Last state we saw, for comparison
-        Game m_oldState;
+	/// <summary>
+	/// Basic parser that takes Game json updates and emits GameEvent json objects
+	/// PLEASE NOTE this is probably wrong; I'm currently emitting one GameEvent per game update but
+	/// ultimately we want a Retrosheet-style condensed description of the whole "play" as a single GameEvent
+	/// </summary>
+	class GameEventParser
+	{
+		// Last state we saw, for comparison
+		Game m_oldState;
 
-        // State tracking for stats not tracked inherently in the state updates
-        int m_eventIndex = 0;
-        string m_currentBatter = null;
-        string m_currentBatterTeam = null;
-        string m_currentPitcher = null;
-        string m_currentPitcherTeam = null;
-        int m_numFouls = 0;
+		// State tracking for stats not tracked inherently in the state updates
+		int m_eventIndex = 0;
+		int m_batterCount = 0;
 
-        public void StartNewGame(Game initState)
-        {
-            m_oldState = initState;
-            m_eventIndex = 0;
-            m_currentBatter = null;
-            m_currentBatterTeam = null;
-            m_currentPitcher = initState.awayPitcher;
-            m_currentPitcherTeam = initState.awayTeam;
-            m_numFouls = 0;
-        }
+		GameEvent m_currEvent;
 
-        private void UpdateBatterAndPitcher(Game newState)
-        {
-            // Pitchers
-            if (m_oldState.inning != newState.inning || m_oldState.topOfInning != newState.topOfInning)
-            {
-                if (newState.topOfInning)
-                {
-                    m_currentPitcher = newState.awayPitcher;
-                    m_currentPitcherTeam = newState.awayTeam;
-                }
-                else
-                {
-                    m_currentPitcher = newState.homePitcher;
-                    m_currentPitcherTeam = newState.homeTeam;
-                }
-            }
-            // Batters
-            string batter = "";
-            string batterTeam = "";
-            if (newState.topOfInning)
-            {
-                batter = newState.awayBatter;
-                batterTeam = newState.awayTeam;
-            }
-            else
-            {
-                batter = newState.homeBatter;
-                batterTeam = newState.homeTeam;
-            }
+		public void StartNewGame(Game initState)
+		{
+			m_oldState = initState;
+			m_eventIndex = 0;
+			m_batterCount = 0;
+			m_currEvent = CreateNewGameEvent(initState);
+			m_currEvent.eventText.Add(initState.lastUpdate);
+		}
 
-            // Did the batter change?
-            if (batter != "" && batter != m_currentBatter)
-            {
-                m_currentBatter = batter;
-                m_currentBatterTeam = batterTeam;
-                m_numFouls = 0;
-            }
-        }
+		private string GetBatterId(Game state)
+		{
+			// Batters can sometimes be empty
+			string batter = state.topOfInning ? state.awayBatter : state.homeBatter;
+			return batter == string.Empty ? null : batter;
+		}
 
-        public GameEvent ParseGameUpdate(Game newState)
-        {
-            GameEvent currEvent = new GameEvent();
+		private string GetPitcherId(Game state)
+		{
+			return state.topOfInning ? state.awayPitcher : state.homePitcher;
+		}
 
-            currEvent.gameId = newState._id;
-            currEvent.eventIndex = m_eventIndex;
-            currEvent.inning = newState.inning;
-            currEvent.outsBeforePlay = m_oldState.halfInningOuts;
+		private string GetBatterTeamId(Game state)
+		{
+			return state.topOfInning ? state.awayTeam : state.homeTeam;
+		}
 
-            UpdateBatterAndPitcher(newState);
-            currEvent.batterId = m_currentBatter;
-            currEvent.batterTeamId = m_currentBatterTeam;
-            currEvent.pitcherId = m_currentPitcher;
-            currEvent.pitcherTeamId = m_currentPitcherTeam;
+		private string GetPitcherTeamId(Game state)
+		{
+			return state.topOfInning ? state.homeTeam : state.awayTeam;
+		}
 
-            currEvent.homeScore = newState.homeScore;
-            currEvent.awayScore = newState.awayScore;
-            currEvent.homeStrikeCount = newState.homeStrikes;
-            currEvent.awayStrikeCount = newState.awayStrikes;
+		private GameEvent CreateNewGameEvent(Game newState)
+		{
+			GameEvent currEvent = new GameEvent();
 
-            currEvent.totalStrikes = newState.atBatStrikes;
-            currEvent.totalBalls = newState.atBatBalls;
+			currEvent.gameId = newState._id;
+			currEvent.eventIndex = m_eventIndex;
+			currEvent.batterCount = m_batterCount;
+			currEvent.inning = newState.inning;
+			currEvent.outsBeforePlay = m_oldState.halfInningOuts;
 
-            if (newState.lastUpdate.Contains("Foul Ball"))
-            {
-                m_numFouls++;
-            }
-            currEvent.totalFouls = m_numFouls;
+			currEvent.homeStrikeCount = newState.homeStrikes;
+			currEvent.awayStrikeCount = newState.awayStrikes;
 
-            // If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
-            if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
-            {
-                currEvent.outsOnPlay = 1;
-            }
-            else
-            {
-                currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
-            }
+			currEvent.homeScore = newState.homeScore;
+			currEvent.awayScore = newState.awayScore;
 
-            // TODO: we need a better method to track RBIs
-            // Stealing home can happen, for one thing
-            currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
+			// Currently not supported by the cultural event of Blaseball
+			currEvent.isPinchHit = false;
+			currEvent.isWildPitch = false;
+			currEvent.isBunt = false;
+			currEvent.errorsOnPlay = 0;
+			currEvent.isSacrificeFly = false; // I think we can't tell this
 
-            // Extremely basic single/double/triple/HR detection
-            if (newState.lastUpdate.Contains("hits a Single"))
-            {
-                currEvent.basesHit = 1;
-                currEvent.batterBaseAfterPlay = 1;
-            }
-            else if (newState.lastUpdate.Contains("hits a Double"))
-            {
-                currEvent.basesHit = 2;
-                currEvent.batterBaseAfterPlay = 2;
-            }
-            else if (newState.lastUpdate.Contains("hits a Triple"))
-            {
-                currEvent.basesHit = 3;
-                currEvent.batterBaseAfterPlay = 3;
-            }
-            else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
-            {
-                currEvent.basesHit = 4;
-                currEvent.batterBaseAfterPlay = 4;
-            }
+			currEvent.batterId = GetBatterId(newState);
+			currEvent.batterTeamId = GetBatterTeamId(newState);
+			currEvent.pitcherId = GetPitcherId(newState);
+			currEvent.pitcherTeamId = GetPitcherTeamId(newState);
 
-            // Sacrifice outs
-            if (newState.lastUpdate.Contains("sacrifice"))
-            {
-                currEvent.isSacrificeHit = true;
-            }
+			currEvent.eventText = new List<string>();
 
-            // Double plays
-            if (newState.lastUpdate.Contains("double play"))
-            {
-                currEvent.isDoublePlay = true;
-            }
+			return currEvent;
+		}
 
-            // Triple plays
-            if (newState.lastUpdate.Contains("triple play"))
-            {
-                currEvent.isTriplePlay = true;
-            }
+		public GameEvent ParseGameUpdate(Game newState)
+		{
+			if(newState.Equals(m_oldState))
+			{
+				Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
+				return null;
+			}
 
-            // TODO currEvent.eventType
-            // TODO currEvent.batterCount
-            // TODO currEvent.pitchesList
-            // TODO currEvent.isLeadoff
-            // TODO currEvent.lineupPosition
-            // TODO currEvent.battedBallType
-            // TODO currEvent.baseRunners
-            // TODO currEvent.isLastEventForAtBat
+			if(m_currEvent == null)
+			{
+				m_currEvent = CreateNewGameEvent(newState);
+			}
 
-            // Unsure if this is enough
-            currEvent.isLastGameEvent = newState.gameComplete;
+			// If we haven't found the batter for this event yet, try again
+			if (m_currEvent.batterId == null)
+			{
+				m_currEvent.batterId = GetBatterId(newState);
+			}
 
-            // Currently not supported by the cultural event of Blaseball
-            currEvent.isPinchHit = false;
-            currEvent.isWildPitch = false;
-            currEvent.isBunt = false;
-            currEvent.errorsOnPlay = 0;
-            currEvent.isSacrificeFly = false; // I think we can't tell this
+			if (newState.atBatStrikes > m_currEvent.totalStrikes)
+			{
+				m_currEvent.totalStrikes = newState.atBatStrikes;
+			}
+			if (newState.atBatBalls > m_currEvent.totalBalls)
+			{
+				m_currEvent.totalBalls = newState.atBatBalls;
+			}
 
-            // Store original update text for reference
-            currEvent.additionalContext = newState.lastUpdate;
+			if (newState.lastUpdate.Contains("Foul Ball"))
+			{
+				m_currEvent.totalFouls++;
+			}
 
-            m_oldState = newState;
-            m_eventIndex++;
-
-            return currEvent;
-        }
+			// If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
+			if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
+			{
+				m_currEvent.outsOnPlay = 1;
+			}
+			else
+			{
+				m_currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
+			}
 
 
-    }
+			// TODO: we need a better method to track RBIs
+			// Stealing home can happen, for one thing
+			m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
+
+			// Extremely basic single/double/triple/HR detection
+			if (newState.lastUpdate.Contains("hits a Single"))
+			{
+				m_currEvent.basesHit = 1;
+				m_currEvent.batterBaseAfterPlay = 1;
+			}
+			else if (newState.lastUpdate.Contains("hits a Double"))
+			{
+				m_currEvent.basesHit = 2;
+				m_currEvent.batterBaseAfterPlay = 2;
+			}
+			else if (newState.lastUpdate.Contains("hits a Triple"))
+			{
+				m_currEvent.basesHit = 3;
+				m_currEvent.batterBaseAfterPlay = 3;
+			}
+			else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
+			{
+				m_currEvent.basesHit = 4;
+				m_currEvent.batterBaseAfterPlay = 4;
+			}
+
+			// Sacrifice outs
+			if (newState.lastUpdate.Contains("sacrifice"))
+			{
+				m_currEvent.isSacrificeHit = true;
+			}
+
+			// Double plays
+			if (newState.lastUpdate.Contains("double play"))
+			{
+				m_currEvent.isDoublePlay = true;
+			}
+
+			// Triple plays
+			if (newState.lastUpdate.Contains("triple play"))
+			{
+				m_currEvent.isTriplePlay = true;
+			}
+
+			// TODO steals
+			m_currEvent.isLastEventForPlateAppearance = true;
+
+			// TODO currEvent.pitchesList
+			// TODO currEvent.isLeadoff
+			// TODO currEvent.lineupPosition
+			// TODO currEvent.battedBallType
+			// TODO currEvent.baseRunners
+
+			// Unsure if this is enough
+			m_currEvent.isLastGameEvent = newState.gameComplete;
+
+			// Store original update text for reference
+			m_currEvent.eventText.Add(newState.lastUpdate);
+
+			// Cycle state
+			m_oldState = newState;
+
+			// If we had outs or hits, emit
+			// TODO: walks, steals
+			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0)
+			{
+				GameEvent emitted = m_currEvent;
+				m_currEvent = null;
+				m_eventIndex++;
+				return emitted;
+			}
+			else
+			{
+				return null;
+			}
+		}
+
+
+	}
 }

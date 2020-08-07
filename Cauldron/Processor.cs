@@ -57,8 +57,11 @@ namespace Cauldron
 						GameEventParser parser = m_trackedGames[game._id];
 						GameEvent latest = parser.ParseGameUpdate(game);
 
-						// Write out the latest game event
-						outJson.WriteLine(JsonSerializer.Serialize(latest));
+						if (latest != null)
+						{
+							// Write out the latest game event
+							outJson.WriteLine(JsonSerializer.Serialize(latest));
+						}
 					}
 				}
 			}
