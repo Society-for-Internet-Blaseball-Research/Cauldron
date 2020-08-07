@@ -10,7 +10,8 @@ Run from the command line:
 * Handle partial games by ignoring them and printing a warning
 * Ignore duplicate updates after the game is over
 * Change to emit one event per plate appearance (roughly)
-	* Steals should emit the current apperance so far, then emit the steal, then start a new event for the same appearance?
+	* Steals should emit the current apperance so far, ended by the steal
+	* We should then start a new event for the rest of that appearance
 
 ## Unimplemented Fields
 
