@@ -1,0 +1,4 @@
+obj/
+bin/Debug/
+.vs/
+bin/Release/netcoreapp3.1/blaseball-sample-log.json
