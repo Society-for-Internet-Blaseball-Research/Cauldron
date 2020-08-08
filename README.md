@@ -11,7 +11,6 @@ Run from the command line:
 
 ## Unimplemented Fields
 
-* `pitchesList`
 * `isLeadoff`
 * `lineupPosition`
 * `battedBallType`
@@ -19,8 +18,5 @@ Run from the command line:
 	* This is an array of `GameEventBaseRunner` sub-objects that aren't yet implemented
 
 ## Partially implemented fields
+
 * `eventType`
-
-## Known Wrong Fields
-
-* `runsBattedIn` isn't accounting for stealing home
