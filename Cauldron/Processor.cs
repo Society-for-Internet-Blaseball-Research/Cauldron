@@ -16,12 +16,80 @@ namespace Cauldron
 		/// </summary>
 		Dictionary<string, GameEventParser> m_trackedGames;
 
+		private readonly JsonSerializerOptions m_serializerOptions;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		public Processor()
 		{
+			// I like camel case for my C# properties, sue me
+			m_serializerOptions = new JsonSerializerOptions();
+			m_serializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+
 			m_trackedGames = new Dictionary<string, GameEventParser>();
+		}
+
+		private IEnumerable<GameEvent> ProcessUpdate(Update update)
+		{
+			// Currently we only care about the 'schedule' field that has the game updates
+			foreach (var game in update.Schedule)
+			{
+				// Add new games if needed
+				if (!m_trackedGames.ContainsKey(game._id))
+				{
+					GameEventParser parser = new GameEventParser();
+					parser.StartNewGame(game);
+
+					m_trackedGames[game._id] = parser;
+				}
+				else
+				{
+					// Update a current game
+					GameEventParser parser = m_trackedGames[game._id];
+					GameEvent latest = parser.ParseGameUpdate(game);
+
+					if (latest != null)
+					{
+						yield return latest;
+					}
+				}
+			}
+		}
+
+		public IEnumerable<GameEvent> Process(StreamReader newlineDelimitedJson)
+		{
+			List<GameEvent> events = new List<GameEvent>();
+
+			while (!newlineDelimitedJson.EndOfStream)
+			{
+				string obj = newlineDelimitedJson.ReadLine();
+				Update update = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
+
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+				events.AddRange(newEvents);
+			}
+
+			return events;
+		}
+
+		public IEnumerable<GameEvent> Process(string newlineDelimitedJson)
+		{
+			List<GameEvent> events = new List<GameEvent>();
+
+			StringReader sr = new StringReader(newlineDelimitedJson);
+			string line = sr.ReadLine();
+			while (line != null)
+			{
+				Update update = JsonSerializer.Deserialize<Update>(line, m_serializerOptions);
+
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+				events.AddRange(newEvents);
+
+				line = sr.ReadLine();
+			}
+
+			return events;
 		}
 
 		/// <summary>
@@ -31,38 +99,17 @@ namespace Cauldron
 		/// <param name="outJson">SIBR Game Event schema JSON objects, newline delimited</param>
 		public void Process(StreamReader newlineDelimitedJson, StreamWriter outJson)
 		{
-			// I like camel case for my C# properties, sue me
-			JsonSerializerOptions serializerOptions = new JsonSerializerOptions();
-			serializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-
 			while (!newlineDelimitedJson.EndOfStream)
 			{
 				string obj = newlineDelimitedJson.ReadLine();
-				Update update = JsonSerializer.Deserialize<Update>(obj, serializerOptions);
+				Update update = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
 
-				// Currently we only care about the 'schedule' field that has the game updates
-				foreach(var game in update.Schedule)
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+
+				foreach(var e in newEvents)
 				{
-					// Add new games if needed
-					if (!m_trackedGames.ContainsKey(game._id))
-					{
-						GameEventParser parser = new GameEventParser();
-						parser.StartNewGame(game);
-
-						m_trackedGames[game._id] = parser;
-					}
-					else
-					{
-						// Update a current game
-						GameEventParser parser = m_trackedGames[game._id];
-						GameEvent latest = parser.ParseGameUpdate(game);
-
-						if (latest != null)
-						{
-							// Write out the latest game event
-							outJson.WriteLine(JsonSerializer.Serialize(latest));
-						}
-					}
+					// Write out the latest game event
+					outJson.WriteLine(JsonSerializer.Serialize(e));
 				}
 			}
 
