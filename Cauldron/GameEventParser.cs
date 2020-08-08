@@ -61,6 +61,7 @@ namespace Cauldron
 			currEvent.eventIndex = m_eventIndex;
 			currEvent.batterCount = m_batterCount;
 			currEvent.inning = newState.inning;
+			currEvent.topOfInning = newState.topOfInning;
 			currEvent.outsBeforePlay = m_oldState.halfInningOuts;
 
 			currEvent.homeStrikeCount = newState.homeStrikes;
@@ -82,6 +83,7 @@ namespace Cauldron
 			currEvent.pitcherTeamId = GetPitcherTeamId(newState);
 
 			currEvent.eventText = new List<string>();
+			currEvent.pitchesList = new List<char>();
 
 			return currEvent;
 		}
@@ -105,18 +107,57 @@ namespace Cauldron
 				m_currEvent.batterId = GetBatterId(newState);
 			}
 
-			if (newState.atBatStrikes > m_currEvent.totalStrikes)
+			int newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
+
+			if (newStrikes > 0)
 			{
 				m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
-			if (newState.atBatBalls > m_currEvent.totalBalls)
+			// If a batter strikes out we never get an update with 3 strikes on it
+			// so check the play text
+			else if(newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+			{
+				// Set the strikes to the total for the team that WAS batting
+				newStrikes = 1;
+				m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
+			}
+
+			if(newStrikes > 0)
+			{
+				if(newState.lastUpdate.Contains("looking"))
+				{
+					m_currEvent.pitchesList.Add('C');
+				}
+				else if(newState.lastUpdate.Contains("swinging"))
+				{
+					m_currEvent.pitchesList.Add('S');
+				}
+				else if(newState.lastUpdate.Contains("Foul Ball"))
+				{
+					// Do nothing, fouls are handled below
+				}
+				else
+				{
+					Console.WriteLine($"ERROR: saw a strike but couldn't classify it in gameId {newState._id}");
+				}
+			}
+
+			int newBalls = newState.atBatBalls - m_currEvent.totalBalls;
+			if (newBalls > 0)
 			{
 				m_currEvent.totalBalls = newState.atBatBalls;
+				m_currEvent.pitchesList.Add('B');
+			}
+			else if(newState.lastUpdate.Contains("walk"))
+			{
+				m_currEvent.totalBalls = 4;
+				m_currEvent.pitchesList.Add('B');
 			}
 
 			if (newState.lastUpdate.Contains("Foul Ball"))
 			{
 				m_currEvent.totalFouls++;
+				m_currEvent.pitchesList.Add('F');
 			}
 
 			// If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
@@ -129,10 +170,14 @@ namespace Cauldron
 				m_currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
 			}
 
-
 			// TODO: we need a better method to track RBIs
 			// Stealing home can happen, for one thing
 			m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
+
+			if(newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
+			{
+				m_currEvent.pitchesList.Add('X');
+			}
 
 			// Extremely basic single/double/triple/HR detection
 			if (newState.lastUpdate.Contains("hits a Single"))
@@ -192,9 +237,9 @@ namespace Cauldron
 			// Cycle state
 			m_oldState = newState;
 
-			// If we had outs or hits, emit
-			// TODO: walks, steals
-			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0)
+			// If we had outs or hits or walks, emit
+			// TODO: steals
+			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.totalBalls == 4)
 			{
 				GameEvent emitted = m_currEvent;
 				m_currEvent = null;

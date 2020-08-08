@@ -39,7 +39,7 @@ namespace Cauldron
         public int homeStrikeCount { get; set; }
         public int awayStrikeCount { get; set; }
         public int batterCount { get; set; }
-        public List<string> pitchesList { get; set; }
+        public List<char> pitchesList { get; set; }
         public int totalStrikes { get; set; }
         public int totalBalls { get; set; }
         public int totalFouls { get; set; }
