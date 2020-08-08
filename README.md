@@ -8,19 +8,18 @@ Run from the command line:
 ## TODO
 
 * Handle partial games by ignoring them and printing a warning
-* Handle steals
-	* Steals should emit the current apperance so far, ended by the steal
-	* We should then start a new event for the rest of that appearance
 
 ## Unimplemented Fields
 
-* `eventType`
 * `pitchesList`
 * `isLeadoff`
 * `lineupPosition`
 * `battedBallType`
 * `baseRunners`
 	* This is an array of `GameEventBaseRunner` sub-objects that aren't yet implemented
+
+## Partially implemented fields
+* `eventType`
 
 ## Known Wrong Fields
 

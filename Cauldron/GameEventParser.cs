@@ -132,28 +132,36 @@ namespace Cauldron
 
 			// TODO: we need a better method to track RBIs
 			// Stealing home can happen, for one thing
-			m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
+
+			if(!m_oldState.lastUpdate.Contains("steals"))
+			{
+				m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
+			}
 
 			// Extremely basic single/double/triple/HR detection
 			if (newState.lastUpdate.Contains("hits a Single"))
 			{
 				m_currEvent.basesHit = 1;
 				m_currEvent.batterBaseAfterPlay = 1;
+				m_currEvent.eventType = GameEventType.SINGLE;
 			}
 			else if (newState.lastUpdate.Contains("hits a Double"))
 			{
 				m_currEvent.basesHit = 2;
 				m_currEvent.batterBaseAfterPlay = 2;
+				m_currEvent.eventType = GameEventType.DOUBLE;
 			}
 			else if (newState.lastUpdate.Contains("hits a Triple"))
 			{
 				m_currEvent.basesHit = 3;
 				m_currEvent.batterBaseAfterPlay = 3;
+				m_currEvent.eventType = GameEventType.TRIPLE;
 			}
 			else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
 			{
 				m_currEvent.basesHit = 4;
 				m_currEvent.batterBaseAfterPlay = 4;
+				m_currEvent.eventType = GameEventType.HOME_RUN;
 			}
 
 			// Sacrifice outs
@@ -174,7 +182,54 @@ namespace Cauldron
 				m_currEvent.isTriplePlay = true;
 			}
 
-			// TODO steals
+			// Out
+			if(newState.lastUpdate.Contains("out") || newState.lastUpdate.Contains("sacrifice") || newState.lastUpdate.Contains("hit into a double play"))
+			{
+				if(newState.lastUpdate.Contains("strikes out"))
+				{
+					m_currEvent.eventType = GameEventType.STRIKEOUT;
+				}
+				else
+				{
+					m_currEvent.eventType = GameEventType.OUT;
+				}
+			}
+
+			// Fielder's choice
+			// This has to go after out because it overrides it in case
+			// a different batter was out.
+			if(newState.lastUpdate.Contains("fielder's choice"))
+			{
+				m_currEvent.eventType = GameEventType.FIELDERS_CHOICE;
+			}
+
+			// Caught Stealing
+			if(newState.lastUpdate.Contains("caught stealing"))
+			{
+				m_currEvent.eventType = GameEventType.CAUGHT_STEALING;
+			}
+
+
+			// Steals
+			if(newState.lastUpdate.Contains("steals"))
+			{
+				m_currEvent.eventType = GameEventType.STOLEN_BASE;
+				m_currEvent.isSteal = true;
+			}
+
+			// Walks
+			if(newState.lastUpdate.Contains("walk"))
+			{
+				m_currEvent.eventType = GameEventType.WALK;
+				m_currEvent.isWalk = true;
+			}
+
+			// Unknown or not currently handled event
+			if(m_currEvent.eventType == null)
+			{
+				m_currEvent.eventType = GameEventType.UNKNOWN;
+			}
+
 			m_currEvent.isLastEventForPlateAppearance = true;
 
 			// TODO currEvent.pitchesList
@@ -193,8 +248,7 @@ namespace Cauldron
 			m_oldState = newState;
 
 			// If we had outs or hits, emit
-			// TODO: walks, steals
-			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0)
+			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk)
 			{
 				GameEvent emitted = m_currEvent;
 				m_currEvent = null;

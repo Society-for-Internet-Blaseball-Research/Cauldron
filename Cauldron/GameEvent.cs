@@ -6,6 +6,29 @@ using System.Threading.Tasks;
 
 namespace Cauldron
 {
+    public static class GameEventType
+    {
+        public static string UNKNOWN = "UNKNOWN";
+        public static string NONE = "NONE";
+        public static string OUT = "OUT";
+        public static string STRIKEOUT = "STRIKEOUT";
+        public static string STOLEN_BASE = "STOLEN_BASE";
+        public static string CAUGHT_STEALING = "CAUGHT_STEALING";
+        public static string PICKOFF = "PICKOFF";
+        public static string WILD_PITCH = "WILD_PITCH";
+        public static string BALK = "BALK";
+        public static string OTHER_ADVANCE = "OTHER_ADVANCE";
+        public static string WALK = "WALK";
+        public static string INTENTIONAL_WALK = "INTENTIONAL_WALK";
+        public static string HIT_BY_PITCH = "HIT_BY_PITCH";
+        public static string FIELDERS_CHOICE = "FIELDERS_CHOICE";
+        public static string SINGLE = "SINGLE";
+        public static string DOUBLE = "DOUBLE";
+        public static string TRIPLE = "TRIPLE";
+        public static string HOME_RUN = "HOME_RUN";
+    }
+
+
     /// <summary>
     /// Serializable class following DB schema from SIBR for baserunning info
     /// </summary>
@@ -64,6 +87,8 @@ namespace Cauldron
         public string additionalContext { get; set; }
         public bool topOfInning { get; set; }
         public List<string> eventText { get; set; }
+        public bool isSteal { get; set; }
+        public bool isWalk{ get; set; }
         public override string ToString()
         {
             return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";
