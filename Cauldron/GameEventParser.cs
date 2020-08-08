@@ -88,25 +88,11 @@ namespace Cauldron
 			return currEvent;
 		}
 
-		public GameEvent ParseGameUpdate(Game newState)
+		/// <summary>
+		/// Logic for updating balls and strikes, including foul balls
+		/// </summary>
+		private void UpdateBallsAndStrikes(Game newState)
 		{
-			if(newState.Equals(m_oldState))
-			{
-				Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
-				return null;
-			}
-
-			if(m_currEvent == null)
-			{
-				m_currEvent = CreateNewGameEvent(newState);
-			}
-
-			// If we haven't found the batter for this event yet, try again
-			if (m_currEvent.batterId == null)
-			{
-				m_currEvent.batterId = GetBatterId(newState);
-			}
-
 			int newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
 
 			if (newStrikes > 0)
@@ -115,24 +101,24 @@ namespace Cauldron
 			}
 			// If a batter strikes out we never get an update with 3 strikes on it
 			// so check the play text
-			else if(newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+			else if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
 			{
 				// Set the strikes to the total for the team that WAS batting
 				newStrikes = 1;
 				m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
 			}
 
-			if(newStrikes > 0)
+			if (newStrikes > 0)
 			{
-				if(newState.lastUpdate.Contains("looking"))
+				if (newState.lastUpdate.Contains("looking"))
 				{
 					m_currEvent.pitchesList.Add('C');
 				}
-				else if(newState.lastUpdate.Contains("swinging"))
+				else if (newState.lastUpdate.Contains("swinging"))
 				{
 					m_currEvent.pitchesList.Add('S');
 				}
-				else if(newState.lastUpdate.Contains("Foul Ball"))
+				else if (newState.lastUpdate.Contains("Foul Ball"))
 				{
 					// Do nothing, fouls are handled below
 				}
@@ -148,7 +134,7 @@ namespace Cauldron
 				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.pitchesList.Add('B');
 			}
-			else if(newState.lastUpdate.Contains("walk"))
+			else if (newState.lastUpdate.Contains("walk"))
 			{
 				m_currEvent.totalBalls = 4;
 				m_currEvent.pitchesList.Add('B');
@@ -161,7 +147,13 @@ namespace Cauldron
 				m_currEvent.totalFouls++;
 				m_currEvent.pitchesList.Add('F');
 			}
+		}
 
+		/// <summary>
+		/// Update outs (they're annoying)
+		/// </summary>
+		private void UpdateOuts(Game newState)
+		{
 			// If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
 			if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
 			{
@@ -172,15 +164,31 @@ namespace Cauldron
 				m_currEvent.outsOnPlay = Math.Max(0, newState.halfInningOuts - m_oldState.halfInningOuts);
 			}
 
-			// Hand RBIs
+			// Types of outs
+			if (newState.lastUpdate.Contains("out") || newState.lastUpdate.Contains("sacrifice") || newState.lastUpdate.Contains("hit into a double play"))
+			{
+				if (newState.lastUpdate.Contains("strikes out") || newState.lastUpdate.Contains("struck out"))
+				{
+					m_currEvent.eventType = GameEventType.STRIKEOUT;
+				}
+				else
+				{
+					m_currEvent.eventType = GameEventType.OUT;
+				}
+			}
 
-			if(!m_oldState.lastUpdate.Contains("steals"))
+		}
+
+		private void UpdateHits(Game newState)
+		{
+			// Handle RBIs
+			if (!m_oldState.lastUpdate.Contains("steals"))
 			{
 				m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
 			}
 
 			// Mark any kind of hit
-			if(newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
+			if (newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
 			{
 				m_currEvent.pitchesList.Add('X');
 			}
@@ -211,6 +219,14 @@ namespace Cauldron
 				m_currEvent.eventType = GameEventType.HOME_RUN;
 			}
 
+			// TODO currEvent.battedBallType
+		}
+
+		/// <summary>
+		/// Should be called after UpdateOuts because fielder's choice overrides the generic OUT type
+		/// </summary>
+		private void UpdateFielding(Game newState)
+		{
 			// Sacrifice outs
 			if (newState.lastUpdate.Contains("sacrifice"))
 			{
@@ -229,55 +245,85 @@ namespace Cauldron
 				m_currEvent.isTriplePlay = true;
 			}
 
-			// Out
-			if(newState.lastUpdate.Contains("out") || newState.lastUpdate.Contains("sacrifice") || newState.lastUpdate.Contains("hit into a double play"))
-			{
-				if(newState.lastUpdate.Contains("strikes out") || newState.lastUpdate.Contains("struck out"))
-				{
-					m_currEvent.eventType = GameEventType.STRIKEOUT;
-				}
-				else
-				{
-					m_currEvent.eventType = GameEventType.OUT;
-				}
-			}
-
 			// Fielder's choice
 			// This has to go after out because it overrides it in case
 			// a different batter was out.
-			if(newState.lastUpdate.Contains("fielder's choice"))
+			if (newState.lastUpdate.Contains("fielder's choice"))
 			{
 				m_currEvent.eventType = GameEventType.FIELDERS_CHOICE;
 			}
 
 			// Caught Stealing
-			if(newState.lastUpdate.Contains("caught stealing"))
+			if (newState.lastUpdate.Contains("caught stealing"))
 			{
 				m_currEvent.eventType = GameEventType.CAUGHT_STEALING;
 			}
+		}
 
-
+		/// <summary>
+		/// Update stuff around baserunning
+		/// </summary>
+		private void UpdateBaserunning(Game newState)
+		{
 			// Steals
-			if(newState.lastUpdate.Contains("steals"))
+			if (newState.lastUpdate.Contains("steals"))
 			{
 				m_currEvent.eventType = GameEventType.STOLEN_BASE;
 				m_currEvent.isSteal = true;
 			}
 
+			// TODO currEvent.baseRunners
+		}
+
+		/// <summary>
+		/// Update metadata like the leadoff flag and lineupPosition
+		/// </summary>
+		private void UpdateLineupInfo(Game newState)
+		{
+			// TODO currEvent.isLeadoff
+			// TODO currEvent.lineupPosition
+		}
+
+		public GameEvent ParseGameUpdate(Game newState)
+		{
+			if(newState.Equals(m_oldState))
+			{
+				Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
+				return null;
+			}
+
+			if(m_currEvent == null)
+			{
+				m_currEvent = CreateNewGameEvent(newState);
+			}
+
+			// If we haven't found the batter for this event yet, try again
+			if (m_currEvent.batterId == null)
+			{
+				m_currEvent.batterId = GetBatterId(newState);
+			}
+
+			// Presume this event will be last; steals can set this to false later
+			m_currEvent.isLastEventForPlateAppearance = true;
+
+			UpdateLineupInfo(newState);
+
+			UpdateBallsAndStrikes(newState);
+
+			UpdateOuts(newState);
+
+			UpdateHits(newState);
+
+			// Call after UpdateOuts
+			UpdateFielding(newState);
+
+			UpdateBaserunning(newState);
 
 			// Unknown or not currently handled event
 			if(m_currEvent.eventType == null)
 			{
 				m_currEvent.eventType = GameEventType.UNKNOWN;
 			}
-
-			m_currEvent.isLastEventForPlateAppearance = true;
-
-			// TODO currEvent.pitchesList
-			// TODO currEvent.isLeadoff
-			// TODO currEvent.lineupPosition
-			// TODO currEvent.battedBallType
-			// TODO currEvent.baseRunners
 
 			// Unsure if this is enough
 			m_currEvent.isLastGameEvent = newState.gameComplete;
