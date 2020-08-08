@@ -272,7 +272,48 @@ namespace Cauldron
 				m_currEvent.isSteal = true;
 			}
 
-			// TODO currEvent.baseRunners
+			// Clear to a new list every time we parse an update
+			// Since runners can only move in cases where we emit, the last state should be correct
+			m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+
+			for(int i=0; i < newState.baseRunners.Count; i++)
+			{
+				string runnerId = newState.baseRunners[i];
+				int baseIndex = newState.basesOccupied[i];
+
+				GameEventBaseRunner runner = new GameEventBaseRunner();
+				runner.runnerId = runnerId;
+				runner.responsiblePitcherId = GetPitcherId(newState);
+				// We number home = 0, first = 1, second = 2, third = 3
+				// Game updates have first = 0, second = 1, third = 2
+				runner.baseAfterPlay = baseIndex + 1;
+
+				// Find this runner's previous base in the old state
+				bool found = false;
+				for(int j=0; j < m_oldState.baseRunners.Count; j++)
+				{
+					if(m_oldState.baseRunners[j] == runnerId)
+					{
+						runner.baseBeforePlay = m_oldState.basesOccupied[j] + 1;
+						found = true;
+					}
+				}
+				if(!found)
+				{
+					runner.baseBeforePlay = 0;
+				}
+
+				if(newState.lastUpdate.Contains("steals"))
+				{
+					runner.wasBaseStolen = true;
+				}
+				if(newState.lastUpdate.Contains("caught"))
+				{
+					runner.wasCaughtStealing = true;
+				}
+				
+				m_currEvent.baseRunners.Add(runner);
+			}
 		}
 
 		/// <summary>
