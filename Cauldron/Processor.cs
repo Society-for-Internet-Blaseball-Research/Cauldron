@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -109,10 +110,11 @@ namespace Cauldron
 		/// <param name="outJson">SIBR Game Event schema JSON objects, newline delimited</param>
 		public void Process(StreamReader newlineDelimitedJson, StreamWriter outJson)
 		{
+			int linesRead = 0;
 			while (!newlineDelimitedJson.EndOfStream)
 			{
 				string obj = newlineDelimitedJson.ReadLine();
-
+				linesRead++;
 				IEnumerable<GameEvent> newEvents = ProcessUpdate(obj);
 
 				foreach(var e in newEvents)
@@ -122,7 +124,11 @@ namespace Cauldron
 				}
 			}
 
-			Console.WriteLine($"Processed updates for {m_trackedGames.Keys.Count} games.");
+			int discards = m_trackedGames.Values.Sum(x => x.Discards);
+			int processed = m_trackedGames.Values.Sum(x => x.Processed);
+			int errors = m_trackedGames.Values.Sum(x => x.Errors);
+			Console.WriteLine($"Lines Read: {linesRead}\nUpdates Processed: {processed}\nDuplicates Discarded: {discards}\nErrors: {errors}\nGames Found: {m_trackedGames.Keys.Count}");
+
 		}
 	}
 }

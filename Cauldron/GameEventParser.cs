@@ -20,6 +20,13 @@ namespace Cauldron
 		int m_eventIndex = 0;
 		int m_batterCount = 0;
 
+		public int Discards => m_discards;
+		int m_discards = 0;
+		public int Processed => m_processed;
+		int m_processed = 0;
+		public int Errors => m_errors;
+		int m_errors = 0;
+
 		GameEvent m_currEvent;
 
 		public void StartNewGame(Game initState)
@@ -27,6 +34,8 @@ namespace Cauldron
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
+			m_discards = 0;
+			m_processed = 0;
 			m_currEvent = CreateNewGameEvent(initState);
 			m_currEvent.eventText.Add(initState.lastUpdate);
 		}
@@ -85,6 +94,10 @@ namespace Cauldron
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
 
+			// Might be incorrect
+			currEvent.totalStrikes = newState.atBatStrikes;
+			currEvent.totalBalls = newState.atBatBalls;
+
 			return currEvent;
 		}
 
@@ -124,6 +137,7 @@ namespace Cauldron
 				}
 				else
 				{
+					m_errors++;
 					Console.WriteLine($"ERROR: saw a strike but couldn't classify it in gameId {newState._id}");
 				}
 			}
@@ -270,10 +284,14 @@ namespace Cauldron
 			{
 				m_currEvent.eventType = GameEventType.STOLEN_BASE;
 				m_currEvent.isSteal = true;
+				m_currEvent.isLastEventForPlateAppearance = false;
 			}
 
 			// Clear to a new list every time we parse an update
 			// Since runners can only move in cases where we emit, the last state should be correct
+			// TODO: when the 3rd out happens, newState will not have any runners
+			// If we want to show the runners as still stranded in the 3rd out event, we'll have to
+			// dig back into the m_oldState to find them
 			m_currEvent.baseRunners = new List<GameEventBaseRunner>();
 
 			for(int i=0; i < newState.baseRunners.Count; i++)
@@ -329,8 +347,13 @@ namespace Cauldron
 		{
 			if(newState.Equals(m_oldState))
 			{
-				Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
+				//Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
+				m_discards++;
 				return null;
+			}
+			else
+			{
+				m_processed++;
 			}
 
 			if(m_currEvent == null)
@@ -375,11 +398,22 @@ namespace Cauldron
 			// Cycle state
 			m_oldState = newState;
 
-			// If we had outs or hits or a walk, emit
+			// If we had outs or hits or a walk or a steal, emit
 			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk)
 			{
 				GameEvent emitted = m_currEvent;
-				m_currEvent = null;
+
+				if (m_currEvent.isSteal)
+				{
+					// Start the next event in this state
+					m_currEvent = CreateNewGameEvent(newState);
+				}
+				else
+				{
+					// Start the next event in the next state
+					m_currEvent = null;
+				}
+				
 				m_eventIndex++;
 				return emitted;
 			}
