@@ -185,7 +185,7 @@ namespace Cauldron
 			// Out
 			if(newState.lastUpdate.Contains("out") || newState.lastUpdate.Contains("sacrifice") || newState.lastUpdate.Contains("hit into a double play"))
 			{
-				if(newState.lastUpdate.Contains("strikes out"))
+				if(newState.lastUpdate.Contains("strikes out") || newState.lastUpdate.Contains("struck out"))
 				{
 					m_currEvent.eventType = GameEventType.STRIKEOUT;
 				}
