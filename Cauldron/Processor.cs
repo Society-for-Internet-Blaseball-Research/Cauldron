@@ -30,8 +30,20 @@ namespace Cauldron
 			m_trackedGames = new Dictionary<string, GameEventParser>();
 		}
 
-		private IEnumerable<GameEvent> ProcessUpdate(Update update)
+		private IEnumerable<GameEvent> ProcessUpdate(string obj)
 		{
+			Update update = null;
+			try
+			{
+				update = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
+			}
+			catch(System.Text.Json.JsonException ex)
+			{
+				Console.WriteLine(ex.Message);
+				Console.WriteLine($"While processing: {obj}");
+				yield break;
+			}
+
 			// Currently we only care about the 'schedule' field that has the game updates
 			foreach (var game in update.Schedule)
 			{
@@ -57,6 +69,7 @@ namespace Cauldron
 			}
 		}
 
+
 		public IEnumerable<GameEvent> Process(StreamReader newlineDelimitedJson)
 		{
 			List<GameEvent> events = new List<GameEvent>();
@@ -64,9 +77,8 @@ namespace Cauldron
 			while (!newlineDelimitedJson.EndOfStream)
 			{
 				string obj = newlineDelimitedJson.ReadLine();
-				Update update = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
 
-				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(obj);
 				events.AddRange(newEvents);
 			}
 
@@ -81,9 +93,7 @@ namespace Cauldron
 			string line = sr.ReadLine();
 			while (line != null)
 			{
-				Update update = JsonSerializer.Deserialize<Update>(line, m_serializerOptions);
-
-				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(line);
 				events.AddRange(newEvents);
 
 				line = sr.ReadLine();
@@ -102,9 +112,8 @@ namespace Cauldron
 			while (!newlineDelimitedJson.EndOfStream)
 			{
 				string obj = newlineDelimitedJson.ReadLine();
-				Update update = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
 
-				IEnumerable<GameEvent> newEvents = ProcessUpdate(update);
+				IEnumerable<GameEvent> newEvents = ProcessUpdate(obj);
 
 				foreach(var e in newEvents)
 				{
