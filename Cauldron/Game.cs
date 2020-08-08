@@ -42,7 +42,8 @@ namespace Cauldron
 		public string awayBatterName { get; set; }
 		public int season { get; set; } = 0;
 		public int day { get; set; } = 0;
-
+		public int awayTeamBatterCount { get; set; }
+		public int homeTeamBatterCount { get; set; }
 		
 		public bool Equals([AllowNull] Game other)
 		{

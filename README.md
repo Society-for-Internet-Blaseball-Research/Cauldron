@@ -7,16 +7,14 @@ Run from the command line:
 
 ## TODO
 
-* Handle partial games by ignoring them and printing a warning
+* Handle partial games by ignoring them and printing a warning?
 
 ## Unimplemented Fields
 
 * `isLeadoff`
-* `lineupPosition`
 * `battedBallType`
-* `baseRunners`
-	* This is an array of `GameEventBaseRunner` sub-objects that aren't yet implemented
 
 ## Partially implemented fields
 
 * `eventType`
+* `lineupPosition` is getting -1s sometimes

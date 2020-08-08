@@ -20,12 +20,15 @@ namespace Cauldron
 		int m_eventIndex = 0;
 		int m_batterCount = 0;
 
+		// Properties for metrics
 		public int Discards => m_discards;
 		int m_discards = 0;
 		public int Processed => m_processed;
 		int m_processed = 0;
 		public int Errors => m_errors;
 		int m_errors = 0;
+		public string GameId => m_gameId;
+		string m_gameId;
 
 		GameEvent m_currEvent;
 
@@ -34,10 +37,14 @@ namespace Cauldron
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
-			m_discards = 0;
-			m_processed = 0;
+
 			m_currEvent = CreateNewGameEvent(initState);
 			m_currEvent.eventText.Add(initState.lastUpdate);
+
+			m_discards = 0;
+			m_processed = 0;
+			m_errors = 0;
+			m_gameId = initState._id;
 		}
 
 		private string GetBatterId(Game state)
@@ -340,7 +347,16 @@ namespace Cauldron
 		private void UpdateLineupInfo(Game newState)
 		{
 			// TODO currEvent.isLeadoff
-			// TODO currEvent.lineupPosition
+
+			// Game updates have a batter count per team, so the lineup position is that % 9
+			if (newState.topOfInning)
+			{
+				m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
+			}
+			else 
+			{
+				m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+			}
 		}
 
 		public GameEvent ParseGameUpdate(Game newState)
