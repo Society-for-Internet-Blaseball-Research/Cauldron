@@ -393,14 +393,14 @@ namespace Cauldron
 			{
 				PlayerEvent newEvent = new PlayerEvent();
 				newEvent.eventType = PlayerEventType.PEANUT_GOOD;
-				newEvent.playerId = GetBatterId(newState);
+				// TODO: find player ID
 				m_currEvent.playerEvents.Add(newEvent);
 			}
 			if (newState.lastUpdate.Contains("allergic reaction"))
 			{
 				PlayerEvent newEvent = new PlayerEvent();
 				newEvent.eventType = PlayerEventType.PEANUT_BAD;
-				newEvent.playerId = GetBatterId(newState);
+				// TODO: find player ID
 				m_currEvent.playerEvents.Add(newEvent);
 			}
 
