@@ -243,6 +243,9 @@ namespace Cauldron
 
 		}
 
+		/// <summary>
+		/// Update hit information
+		/// </summary>
 		private void UpdateHits(Game newState)
 		{
 			// Handle RBIs
@@ -459,11 +462,40 @@ namespace Cauldron
 
 		}
 
+		/// <summary>
+		/// Final check for obvious errors in the event we're about to emit
+		/// </summary>
+		private void ErrorCheckBeforeEmit(GameEvent toEmit)
+		{
+			if(toEmit.batterId == null)
+			{
+				m_errors++;
+				Console.WriteLine($"ERROR: Emitted an event with NULL batterId ({toEmit.eventText.Aggregate("", (s, x) => s +"|"+x)}) in game {toEmit.gameId}");
+			}
+			if (toEmit.pitcherId == null)
+			{
+				m_errors++;
+				Console.WriteLine($"ERROR: Emitted an event with NULL pitcherId ({toEmit.eventText.Aggregate("", (s, x) => s + "|" + x)}) in game {toEmit.gameId}");
+			}
+		}
+
+		/// <summary>
+		/// Call this with every game update for the game this parser is handling
+		/// </summary>
+		/// <param name="newState"></param>
+		/// <param name="timeStamp"></param>
+		/// <returns></returns>
 		public GameEvent ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
 			if(newState.Equals(m_oldState))
 			{
 				//Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
+				m_discards++;
+				return null;
+			}
+			else if(newState._id != m_oldState._id)
+			{
+				Console.WriteLine("ERROR: GameEventParser got an update for the wrong game!");
 				m_discards++;
 				return null;
 			}
@@ -534,7 +566,8 @@ namespace Cauldron
 					// Start the next event in the next state
 					m_currEvent = null;
 				}
-				
+
+				ErrorCheckBeforeEmit(emitted);
 				m_eventIndex++;
 				return emitted;
 			}
