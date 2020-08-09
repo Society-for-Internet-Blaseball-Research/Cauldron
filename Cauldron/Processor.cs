@@ -52,7 +52,7 @@ namespace Cauldron
 				if (!m_trackedGames.ContainsKey(game._id))
 				{
 					GameEventParser parser = new GameEventParser();
-					parser.StartNewGame(game);
+					parser.StartNewGame(game, update.clientMeta.timestamp);
 
 					m_trackedGames[game._id] = parser;
 				}
@@ -60,7 +60,7 @@ namespace Cauldron
 				{
 					// Update a current game
 					GameEventParser parser = m_trackedGames[game._id];
-					GameEvent latest = parser.ParseGameUpdate(game);
+					GameEvent latest = parser.ParseGameUpdate(game, update.clientMeta.timestamp);
 
 					if (latest != null)
 					{

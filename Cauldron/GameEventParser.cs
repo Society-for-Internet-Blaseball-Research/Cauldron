@@ -32,13 +32,13 @@ namespace Cauldron
 
 		GameEvent m_currEvent;
 
-		public void StartNewGame(Game initState)
+		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
 
-			m_currEvent = CreateNewGameEvent(initState);
+			m_currEvent = CreateNewGameEvent(initState, timeStamp);
 			m_currEvent.eventText.Add(initState.lastUpdate);
 
 			m_discards = 0;
@@ -69,9 +69,11 @@ namespace Cauldron
 			return state.topOfInning ? state.homeTeam : state.awayTeam;
 		}
 
-		private GameEvent CreateNewGameEvent(Game newState)
+		private GameEvent CreateNewGameEvent(Game newState, DateTime timeStamp)
 		{
 			GameEvent currEvent = new GameEvent();
+
+			currEvent.firstPerceivedAt = timeStamp;
 
 			currEvent.gameId = newState._id;
 			currEvent.eventIndex = m_eventIndex;
@@ -100,6 +102,7 @@ namespace Cauldron
 
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
+			currEvent.playerEvents = new List<PlayerEvent>();
 
 			// Might be incorrect
 			currEvent.totalStrikes = newState.atBatStrikes;
@@ -145,7 +148,7 @@ namespace Cauldron
 				else
 				{
 					m_errors++;
-					Console.WriteLine($"ERROR: saw a strike but couldn't classify it in gameId {newState._id}");
+					Console.WriteLine($"ERROR: Strikes went from {m_oldState.atBatStrikes} ('{m_oldState.lastUpdate}') to {newState.atBatStrikes} ('{newState.lastUpdate}') in game {newState._id}");
 				}
 			}
 
@@ -154,6 +157,12 @@ namespace Cauldron
 			{
 				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.pitchesList.Add('B');
+
+				if(!newState.lastUpdate.Contains("Ball.") || newBalls > 1)
+				{
+					m_errors++;
+					Console.WriteLine($"ERROR: Balls went from {m_oldState.atBatBalls} ('{m_oldState.lastUpdate}') to {newState.atBatBalls} ('{newState.lastUpdate}') in game {newState._id}");
+				}
 			}
 			else if (newState.lastUpdate.Contains("walk"))
 			{
@@ -359,7 +368,45 @@ namespace Cauldron
 			}
 		}
 
-		public GameEvent ParseGameUpdate(Game newState)
+		private void UpdatePlayerEvents(Game newState)
+		{
+
+			if (newState.lastUpdate.Contains("incinerated"))
+			{
+				if (newState.lastUpdate.Contains("hitter"))
+				{
+					PlayerEvent newEvent = new PlayerEvent();
+					newEvent.eventType = PlayerEventType.INCINERATION;
+					// TODO: find player ID
+					m_currEvent.playerEvents.Add(newEvent);
+				}
+				else if(newState.lastUpdate.Contains("pitcher"))
+				{
+					PlayerEvent newEvent = new PlayerEvent();
+					newEvent.eventType = PlayerEventType.INCINERATION;
+					// TODO: find player ID
+					m_currEvent.playerEvents.Add(newEvent);
+				}
+			}
+
+			if(newState.lastUpdate.Contains("yummy reaction"))
+			{
+				PlayerEvent newEvent = new PlayerEvent();
+				newEvent.eventType = PlayerEventType.PEANUT_GOOD;
+				newEvent.playerId = GetBatterId(newState);
+				m_currEvent.playerEvents.Add(newEvent);
+			}
+			if (newState.lastUpdate.Contains("allergic reaction"))
+			{
+				PlayerEvent newEvent = new PlayerEvent();
+				newEvent.eventType = PlayerEventType.PEANUT_BAD;
+				newEvent.playerId = GetBatterId(newState);
+				m_currEvent.playerEvents.Add(newEvent);
+			}
+
+		}
+
+		public GameEvent ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
 			if(newState.Equals(m_oldState))
 			{
@@ -374,8 +421,10 @@ namespace Cauldron
 
 			if(m_currEvent == null)
 			{
-				m_currEvent = CreateNewGameEvent(newState);
+				m_currEvent = CreateNewGameEvent(newState, timeStamp);
 			}
+
+			m_currEvent.lastPerceivedAt = timeStamp;
 
 			// If we haven't found the batter for this event yet, try again
 			if (m_currEvent.batterId == null)
@@ -398,6 +447,8 @@ namespace Cauldron
 			UpdateFielding(newState);
 
 			UpdateBaserunning(newState);
+
+			UpdatePlayerEvents(newState);
 
 			// Unknown or not currently handled event
 			if(m_currEvent.eventType == null)
@@ -422,7 +473,7 @@ namespace Cauldron
 				if (m_currEvent.isSteal)
 				{
 					// Start the next event in this state
-					m_currEvent = CreateNewGameEvent(newState);
+					m_currEvent = CreateNewGameEvent(newState, timeStamp);
 				}
 				else
 				{
