@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Cauldron
@@ -32,19 +33,43 @@ namespace Cauldron
 
 		GameEvent m_currEvent;
 
+		Dictionary<string, string> m_playerNameToId;
+		
+		// Special handling for caught stealing
+		bool m_wasCaughtStealing = false;
+		string m_caughtStealingBatter;
+
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
+			m_playerNameToId = new Dictionary<string, string>();
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
-
-			m_currEvent = CreateNewGameEvent(initState, timeStamp);
-			m_currEvent.eventText.Add(initState.lastUpdate);
-
 			m_discards = 0;
 			m_processed = 0;
 			m_errors = 0;
 			m_gameId = initState._id;
+
+			m_currEvent = CreateNewGameEvent(initState, timeStamp);
+			m_currEvent.eventText.Add(initState.lastUpdate);
+		}
+
+		// If the Id and name are valid, store them in our map
+		private void CapturePlayerId(string id, string name)
+		{
+			if(id != null && name != null && id != "" && name != "")
+			{
+				m_playerNameToId[name] = id;
+			}
+		}
+
+		// Capture available player IDs and names from the state
+		private void CapturePlayerIds(Game state)
+		{
+			CapturePlayerId(state.awayBatter, state.awayBatterName);
+			CapturePlayerId(state.awayPitcher, state.awayPitcherName);
+			CapturePlayerId(state.homeBatter, state.homeBatterName);
+			CapturePlayerId(state.homePitcher, state.homePitcherName);
 		}
 
 		private string GetBatterId(Game state)
@@ -71,6 +96,8 @@ namespace Cauldron
 
 		private GameEvent CreateNewGameEvent(Game newState, DateTime timeStamp)
 		{
+			CapturePlayerIds(newState);
+
 			GameEvent currEvent = new GameEvent();
 
 			currEvent.firstPerceivedAt = timeStamp;
@@ -99,6 +126,13 @@ namespace Cauldron
 			currEvent.batterTeamId = GetBatterTeamId(newState);
 			currEvent.pitcherId = GetPitcherId(newState);
 			currEvent.pitcherTeamId = GetPitcherTeamId(newState);
+
+			// Special fixup for caught stealing
+			if (m_wasCaughtStealing && (currEvent.batterId == null || currEvent.batterId == ""))
+			{
+				currEvent.batterId = m_caughtStealingBatter;
+			}
+			m_wasCaughtStealing = false;
 
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
@@ -287,6 +321,15 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("caught stealing"))
 			{
 				m_currEvent.eventType = GameEventType.CAUGHT_STEALING;
+				
+				// SPECIAL GNARLY CASE: someone was caught stealing. If the next update ends the at-bat, it won't have a batter ID on it!
+				// So we need to special cache-off the batter ID. But only if this caught stealing doesn't end the half-inning anyway
+				// Depend on Outs being calculated before this
+				if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay < 3)
+				{
+					m_wasCaughtStealing = true;
+					m_caughtStealingBatter = m_currEvent.batterId;
+				}
 			}
 		}
 
@@ -368,40 +411,50 @@ namespace Cauldron
 			}
 		}
 
+
+		private void TryPopulatePlayerId(PlayerEvent p, string name)
+		{
+			string id;
+			if (m_playerNameToId.TryGetValue(name, out id))
+			{
+				p.playerId = id;
+			}
+		}
+
+		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ \w+)! Replaced by (\w+ \w+)");
+		private static Regex peanutRegex = new Regex(@".er (\w+ \w+) swallowed.*had a (\w) reaction!");
+
 		private void UpdatePlayerEvents(Game newState)
 		{
 
-			if (newState.lastUpdate.Contains("incinerated"))
+			var match = incineRegex.Match(newState.lastUpdate);
+			if (match.Success)
 			{
-				if (newState.lastUpdate.Contains("hitter"))
-				{
-					PlayerEvent newEvent = new PlayerEvent();
-					newEvent.eventType = PlayerEventType.INCINERATION;
-					// TODO: find player ID
-					m_currEvent.playerEvents.Add(newEvent);
-				}
-				else if(newState.lastUpdate.Contains("pitcher"))
-				{
-					PlayerEvent newEvent = new PlayerEvent();
-					newEvent.eventType = PlayerEventType.INCINERATION;
-					// TODO: find player ID
-					m_currEvent.playerEvents.Add(newEvent);
-				}
+				PlayerEvent newEvent = new PlayerEvent();
+				newEvent.eventType = PlayerEventType.INCINERATION;
+				TryPopulatePlayerId(newEvent, match.Groups[1].Value);
+				m_currEvent.playerEvents.Add(newEvent);
 			}
 
-			if(newState.lastUpdate.Contains("yummy reaction"))
+			match = peanutRegex.Match(newState.lastUpdate);
+			if (match.Success)
 			{
-				PlayerEvent newEvent = new PlayerEvent();
-				newEvent.eventType = PlayerEventType.PEANUT_GOOD;
-				// TODO: find player ID
-				m_currEvent.playerEvents.Add(newEvent);
-			}
-			if (newState.lastUpdate.Contains("allergic reaction"))
-			{
-				PlayerEvent newEvent = new PlayerEvent();
-				newEvent.eventType = PlayerEventType.PEANUT_BAD;
-				// TODO: find player ID
-				m_currEvent.playerEvents.Add(newEvent);
+				string playerName = match.Groups[1].Value;
+
+				if (match.Groups[2].Value == "yummy")
+				{
+					PlayerEvent newEvent = new PlayerEvent();
+					newEvent.eventType = PlayerEventType.PEANUT_GOOD;
+					TryPopulatePlayerId(newEvent, playerName);
+					m_currEvent.playerEvents.Add(newEvent);
+				}
+				else if (match.Groups[2].Value == "allergic")
+				{
+					PlayerEvent newEvent = new PlayerEvent();
+					newEvent.eventType = PlayerEventType.PEANUT_BAD;
+					TryPopulatePlayerId(newEvent, playerName);
+					m_currEvent.playerEvents.Add(newEvent);
+				}
 			}
 
 		}
@@ -424,6 +477,7 @@ namespace Cauldron
 				m_currEvent = CreateNewGameEvent(newState, timeStamp);
 			}
 
+			CapturePlayerIds(newState);
 			m_currEvent.lastPerceivedAt = timeStamp;
 
 			// If we haven't found the batter for this event yet, try again
