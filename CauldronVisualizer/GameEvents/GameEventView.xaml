@@ -14,6 +14,18 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border
+            Grid.Column="0"
+            Grid.RowSpan="2"
+            Background="{Binding BattingColor}"
+            Width="10"
+            HorizontalAlignment="Left"
+            />
 
         <Border
             Grid.RowSpan="2"
@@ -31,6 +43,7 @@
         </Border>
         <Grid
             Grid.Row="0"
+            Grid.Column="1"
             >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -56,12 +69,25 @@
                 Style="{StaticResource BigText}"
                 Grid.Row="0"
                 Grid.Column="0">
-                <TextBlock.Text>
-                    <MultiBinding StringFormat="{}Away ({0}) at Home ({1})">
-                        <Binding Path="Event.awayScore"/>
-                        <Binding Path="Event.homeScore"/>
-                    </MultiBinding>
-                </TextBlock.Text>
+                <Run
+                    Foreground="{Binding AwayTeamColor}"
+                    >
+                    <Run.Text>
+                        <MultiBinding StringFormat="{}{0} ({1})">
+                            <Binding Path="AwayTeamName" Mode="OneWay"/>
+                            <Binding Path="Event.awayScore"/>
+                        </MultiBinding>
+                    </Run.Text>
+                </Run>
+                <Run> at </Run>
+                <Run Foreground="{Binding HomeTeamColor}">
+                    <Run.Text>
+                        <MultiBinding StringFormat="{}{0} ({1})">
+                            <Binding Path="HomeTeamName" Mode="OneWay"/>
+                            <Binding Path="Event.homeScore"/>
+                        </MultiBinding>
+                    </Run.Text>
+                </Run>
             </TextBlock>
             <TextBlock
                 Grid.Row="1"
@@ -79,6 +105,7 @@
         <ItemsControl
             Margin="20 10 0 10"
             Grid.Row="1"
+            Grid.Column="1"
             ItemsSource="{Binding Event.eventText}"
             >
             <ItemsControl.ItemTemplate>

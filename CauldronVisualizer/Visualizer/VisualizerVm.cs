@@ -12,48 +12,6 @@ using System.Windows.Input;
 
 namespace CauldronVisualizer
 {
-	public class DelegateCommand : ICommand
-	{
-		private readonly Predicate<object> _canExecute;
-		private readonly Action<object> _execute;
-
-		public event EventHandler CanExecuteChanged;
-
-		public DelegateCommand(Action<object> execute)
-			: this(execute, null)
-		{
-		}
-
-		public DelegateCommand(Action<object> execute, Predicate<object> canExecute)
-		{
-			_execute = execute;
-			_canExecute = canExecute;
-		}
-
-		public bool CanExecute(object parameter)
-		{
-			if (_canExecute == null)
-			{
-				return true;
-			}
-
-			return _canExecute(parameter);
-		}
-
-		public void Execute(object parameter)
-		{
-			_execute(parameter);
-		}
-
-		public void RaiseCanExecuteChanged()
-		{
-			if (CanExecuteChanged != null)
-			{
-				CanExecuteChanged(this, EventArgs.Empty);
-			}
-		}
-	}
-
 	internal class VisualizerVm : INotifyPropertyChanged
 	{
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -84,6 +42,7 @@ namespace CauldronVisualizer
 		}
 		private GameEventVm m_selectedGameEvent;
 
+		#region Filtering
 		public ICommand FilterCommand => m_filterCommand;
 		ICommand m_filterCommand;
 
@@ -107,6 +66,9 @@ namespace CauldronVisualizer
 				return m_eventsCv.Cast<object>().Count();
 			}
 		}
+		#endregion
+
+		Dictionary<string, Team> m_teamLookup;
 
 		public VisualizerVm()
 		{
@@ -124,6 +86,21 @@ namespace CauldronVisualizer
 
 			m_eventsCv = CollectionViewSource.GetDefaultView(GameEvents);
 			m_eventsCv.Filter = FilterGameEvents;
+		}
+
+		public void BuildTeamLookup()
+		{
+			// TODO get from endpoint
+			m_teamLookup = new Dictionary<string, Team>();
+
+			string teamInfo = File.ReadAllText("Data/teams.json");
+
+			List<Team> allTeams = JsonSerializer.Deserialize<List<Team>>(teamInfo, m_serializerOptions);
+
+			foreach(var team in allTeams)
+			{
+				m_teamLookup[team._id] = team;
+			}
 		}
 
 		public bool FilterGameUpdates(object item)
@@ -158,7 +135,9 @@ namespace CauldronVisualizer
 		/// TODO: Actually pick the files to load from
 		/// </summary>
 		public void Load()
-		{ 
+		{
+			BuildTeamLookup();
+
 			string updatesFile = "SampleData/updates.json";
 			string eventsFile = "SampleData/events.json";
 
@@ -179,7 +158,7 @@ namespace CauldronVisualizer
 			{
 				string obj = sr.ReadLine();
 				GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
-				GameEvents.Add(new GameEventVm(e));
+				GameEvents.Add(new GameEventVm(e, m_teamLookup));
 			}
 
 			this.PropertyChanged += VisualizerVm_PropertyChanged;

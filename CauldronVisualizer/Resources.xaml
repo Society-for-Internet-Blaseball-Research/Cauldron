@@ -6,11 +6,11 @@
                     >
 
     
-    <SolidColorBrush x:Key="Background" Color="#313131"/>
+    <SolidColorBrush x:Key="Background" Color="#000000"/>
     <SolidColorBrush x:Key="Foreground" Color="#EEEEEE"/>
     <SolidColorBrush x:Key="Bright" Color="#BBBBBB"/>
-    <SolidColorBrush x:Key="Mid" Color="#525252"/>
-    <SolidColorBrush x:Key="Dim" Color="#414141"/>
+    <SolidColorBrush x:Key="Mid" Color="#404040"/>
+    <SolidColorBrush x:Key="Dim" Color="#080808"/>
 
     <Style 
         x:Key="BaseStyle"
@@ -46,6 +46,7 @@
         x:Key="ListBoxItemAlternating"
         TargetType="{x:Type ListBoxItem}"
         >
+        <Setter Property="Padding" Value="0 0 10 0"/>
         <Style.Triggers>
             <Trigger Property="ItemsControl.AlternationIndex" Value="0">
                 <Setter Property="Background" Value="{StaticResource Background}"/>
