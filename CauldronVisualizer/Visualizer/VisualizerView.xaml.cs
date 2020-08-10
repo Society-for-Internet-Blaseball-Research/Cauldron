@@ -21,10 +21,15 @@ namespace CauldronVisualizer
 		public VisualizerView()
 		{
 			InitializeComponent();
+
+			m_updates.SelectionChanged += listBoxSelectionChanged;
+			m_events.SelectionChanged += listBoxSelectionChanged;
 		}
 
-		private void FilterButton_Click(object sender, RoutedEventArgs e)
+		private void listBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
+			ListBox lb = (ListBox)sender;
+			lb.ScrollIntoView(lb.SelectedItem);
 		}
 	}
 }

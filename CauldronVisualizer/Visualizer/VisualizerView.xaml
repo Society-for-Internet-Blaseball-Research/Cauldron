@@ -66,6 +66,7 @@
         </TextBlock>
 
         <ListBox
+            Name="m_updates"
             Grid.Row="2"
             AlternationCount="2"
             Style="{StaticResource BaseStyle}"
@@ -78,6 +79,7 @@
             >
         </ListBox>
         <ListBox
+            Name="m_events"
             Grid.Row="2"
             AlternationCount="2"
             Style="{StaticResource BaseStyle}"
