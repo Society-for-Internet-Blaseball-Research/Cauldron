@@ -64,7 +64,7 @@ namespace Cauldron
 			m_batchUpdating = false;
 		}
 
-		public List<GameEvent> BatchEnd()
+		public IEnumerable<GameEvent> BatchEnd()
 		{
 			if (!m_batchStarted)
 				throw new InvalidOperationException("Called BatchEnd without calling BatchStart.");
