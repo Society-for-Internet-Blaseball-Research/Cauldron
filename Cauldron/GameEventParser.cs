@@ -472,13 +472,13 @@ namespace Cauldron
 			if(toEmit.batterId == null)
 			{
 				m_errors++;
-				m_currEvent.parsingError = true;
+				toEmit.parsingError = true;
 				Console.WriteLine($"ERROR: Emitted an event with NULL batterId ({toEmit.eventText.Aggregate("", (s, x) => s +"|"+x)}) in game {toEmit.gameId}");
 			}
 			if (toEmit.pitcherId == null)
 			{
 				m_errors++;
-				m_currEvent.parsingError = true;
+				toEmit.parsingError = true;
 				Console.WriteLine($"ERROR: Emitted an event with NULL pitcherId ({toEmit.eventText.Aggregate("", (s, x) => s + "|" + x)}) in game {toEmit.gameId}");
 			}
 		}

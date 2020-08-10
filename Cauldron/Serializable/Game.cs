@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace Cauldron
 {
@@ -41,7 +42,10 @@ namespace Cauldron
 		public int day { get; set; } = 0;
 		public int awayTeamBatterCount { get; set; }
 		public int homeTeamBatterCount { get; set; }
-		
+
+		[JsonConverter(typeof(TimestampConverter))]
+		public DateTime timestamp { get; set; }
+
 		public bool Equals([AllowNull] Game other)
 		{
 			// don't compare the lists

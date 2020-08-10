@@ -5,3 +5,5 @@ Cauldron/bin/Debug/
 CauldronCli/bin/Release/netcoreapp3.1/blaseball-sample-log.json
 CauldronCli/obj/
 CauldronCli/bin/Release/netcoreapp3.1/sample-output.json
+CauldronVisualizer/obj/
+CauldronVisualizer/bin/

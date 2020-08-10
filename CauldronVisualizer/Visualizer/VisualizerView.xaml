@@ -1,0 +1,94 @@
+﻿<UserControl x:Class="CauldronVisualizer.VisualizerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:CauldronVisualizer"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel
+            Grid.Row="0"
+            Grid.ColumnSpan="3"
+            Margin="0 20 0 20"
+            Orientation="Horizontal">
+            <TextBox
+                Style="{StaticResource BaseStyle}"
+                x:Name="m_filter"
+                Width="500"
+                Margin="5"
+            >
+                <TextBox.InputBindings>
+                    <KeyBinding 
+                        Command="{Binding FilterCommand}" 
+                        Key="Return"
+                        CommandParameter="{Binding ElementName=m_filter,Path=Text}"/>
+                </TextBox.InputBindings>
+            </TextBox>
+            <Button
+                Style="{StaticResource BaseStyle}"
+                Width="80"
+                Margin="5"
+                Content="Filter"
+                Command="{Binding FilterCommand}"
+                CommandParameter="{Binding ElementName=m_filter, Path=Text}">
+            </Button>
+        </StackPanel>
+
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="0">
+            <TextBlock.Text>
+                <Binding StringFormat="{}{0:d} updates" Path="FilteredUpdates"/>
+            </TextBlock.Text>
+        </TextBlock>
+
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="2">
+            <TextBlock.Text>
+                <Binding StringFormat="{}{0:d} events" Path="FilteredEvents"/>
+            </TextBlock.Text>
+        </TextBlock>
+
+        <ListBox
+            Grid.Row="2"
+            AlternationCount="2"
+            Style="{StaticResource BaseStyle}"
+            ItemContainerStyle="{StaticResource ListBoxItemAlternating}"
+            HorizontalAlignment="Stretch"
+            Grid.Column="0"
+            ItemsSource="{Binding GameUpdates}"
+            SelectedItem="{Binding SelectedGameUpdate}"
+            HorizontalContentAlignment="Stretch"
+            >
+        </ListBox>
+        <ListBox
+            Grid.Row="2"
+            AlternationCount="2"
+            Style="{StaticResource BaseStyle}"
+            ItemContainerStyle="{StaticResource ListBoxItemAlternating}"
+            HorizontalAlignment="Stretch"
+            Grid.Column="2"
+            ItemsSource="{Binding GameEvents}"
+            SelectedItem="{Binding SelectedGameEvent}"
+            HorizontalContentAlignment="Stretch"
+            >
+        </ListBox>
+
+    </Grid>
+</UserControl>

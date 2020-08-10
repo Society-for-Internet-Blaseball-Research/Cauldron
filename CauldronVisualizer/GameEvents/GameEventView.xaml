@@ -1,0 +1,90 @@
+﻿<UserControl x:Class="CauldronVisualizer.GameEvents.GameEventView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:CauldronVisualizer.GameEvents"
+      mc:Ignorable="d" 
+>
+
+    <Grid
+        HorizontalAlignment="Stretch"
+        >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="2"/>
+        </Grid.RowDefinitions>
+
+        <Border
+            Grid.RowSpan="3"
+            >
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Event.parsingError}" Value="true">
+                            <Setter Property="Background" Value="#99993333"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
+        <Grid
+            Grid.Row="0"
+            >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock
+                Style="{StaticResource SmallText}"
+                HorizontalAlignment="Right"
+                Grid.Column="1"
+                >
+                <TextBlock.Text>
+                    <Binding StringFormat="{}{0}" Path="Event.gameId"/>
+                </TextBlock.Text>
+            </TextBlock>
+            <TextBlock
+                Style="{StaticResource BigText}"
+                Text="{Binding InningDescription}">
+            </TextBlock>
+            <TextBlock
+                Grid.Row="1"
+                Text="{Binding Event.eventType}">
+                
+            </TextBlock>
+            <!--<TextBlock
+                TextWrapping="Wrap"
+                Grid.Column="0"
+                >
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0} pitching to {1}">
+                        <Binding Path="Event.pitcherTeamId"/>
+                        <Binding Path="Event.batterTeamId"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>-->
+        </Grid>
+        <ItemsControl
+            Margin="20 10 0 10"
+            Grid.Row="1"
+            ItemsSource="{Binding Event.eventText}"
+            >
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="string">
+                    <TextBlock
+                        Text="{Binding}"
+                        Style="{StaticResource SmallText}"
+                        Foreground="{StaticResource Bright}"
+                        />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

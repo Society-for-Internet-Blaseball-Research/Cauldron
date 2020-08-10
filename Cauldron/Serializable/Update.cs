@@ -8,14 +8,14 @@ namespace Cauldron
 	/// Serializable class representing a single JSON object in a blaseball socket.io update
 	/// Currently the only thing this parser cares about is the Schedule - the game updates themselves
 	/// </summary>
-	class Update
+	public class Update
     {
         public List<Game> Schedule { get; set; }
 
         public ClientMeta clientMeta { get; set; }
     }
 
-    class ClientMeta
+    public class ClientMeta
 	{
         [JsonConverter(typeof(TimestampConverter))]
         public DateTime timestamp { get; set; }
