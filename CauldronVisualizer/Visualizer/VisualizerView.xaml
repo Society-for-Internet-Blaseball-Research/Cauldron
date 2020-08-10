@@ -13,6 +13,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -50,7 +51,7 @@
         </StackPanel>
 
         <TextBlock
-            Grid.Row="1"
+            Grid.Row="2"
             Grid.Column="0">
             <TextBlock.Text>
                 <Binding StringFormat="{}{0:d} updates" Path="FilteredUpdates"/>
@@ -58,16 +59,62 @@
         </TextBlock>
 
         <TextBlock
-            Grid.Row="1"
+            Grid.Row="2"
             Grid.Column="2">
             <TextBlock.Text>
                 <Binding StringFormat="{}{0:d} events" Path="FilteredEvents"/>
             </TextBlock.Text>
         </TextBlock>
 
+        <StackPanel
+            HorizontalAlignment="Center"
+            Orientation="Horizontal"
+            Grid.Row="1"
+            Grid.Column="0"
+            >
+            <Button
+                Content="Load Updates..."
+                Height="30"
+                Width="200"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding LoadUpdatesCommand}"
+                />
+            <Button
+                Margin="10 0 0 0"
+                Content="Save Updates..."
+                Height="30"
+                Width="200"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding SaveUpdatesCommand}"
+                />
+        </StackPanel>
+
+        <StackPanel
+            HorizontalAlignment="Center"
+            Orientation="Horizontal"
+            Grid.Row="1"
+            Grid.Column="2"
+            >
+            <Button
+                Content="Load Events..."
+                Height="30"
+                Width="200"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding LoadEventsCommand}"
+                />
+            <Button
+                Margin="10 0 0 0"
+                Content="Save Events..."
+                Height="30"
+                Width="200"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding SaveEventsCommand}"
+                />
+        </StackPanel>
+
         <ListBox
             Name="m_updates"
-            Grid.Row="2"
+            Grid.Row="3"
             AlternationCount="2"
             Style="{StaticResource BaseStyle}"
             ItemContainerStyle="{StaticResource ListBoxItemAlternating}"
@@ -80,7 +127,7 @@
         </ListBox>
         <ListBox
             Name="m_events"
-            Grid.Row="2"
+            Grid.Row="3"
             AlternationCount="2"
             Style="{StaticResource BaseStyle}"
             ItemContainerStyle="{StaticResource ListBoxItemAlternating}"

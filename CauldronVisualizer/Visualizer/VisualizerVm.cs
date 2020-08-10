@@ -1,4 +1,5 @@
 ﻿using Cauldron;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Input;
 
@@ -44,7 +46,19 @@ namespace CauldronVisualizer
 
 		#region Filtering
 		public ICommand FilterCommand => m_filterCommand;
-		ICommand m_filterCommand;
+		DelegateCommand m_filterCommand;
+
+		public ICommand LoadUpdatesCommand => m_loadUpdatesCommand;
+		DelegateCommand m_loadUpdatesCommand;
+
+		public ICommand LoadEventsCommand => m_loadEventsCommand;
+		DelegateCommand m_loadEventsCommand;
+
+		public ICommand SaveUpdatesCommand => m_saveUpdatesCommand;
+		DelegateCommand m_saveUpdatesCommand;
+
+		public ICommand SaveEventsCommand => m_saveEventsCommand;
+		DelegateCommand m_saveEventsCommand;
 
 		string m_filterString;
 
@@ -80,6 +94,11 @@ namespace CauldronVisualizer
 
 			m_filterCommand = new DelegateCommand(Filter);
 			m_filterString = null;
+
+			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
+			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
+			m_saveUpdatesCommand = new DelegateCommand(ChooseSaveUpdatesFile);
+			m_saveEventsCommand = new DelegateCommand(ChooseSaveEventsFile);
 
 			m_updatesCv = CollectionViewSource.GetDefaultView(GameUpdates);
 			m_updatesCv.Filter = FilterGameUpdates;
@@ -131,35 +150,129 @@ namespace CauldronVisualizer
 			OnPropertyChanged(nameof(FilteredUpdates));
 		}
 
+		public void ChooseLoadUpdateFile(object param)
+		{
+			// TODO: not great for non windows
+			OpenFileDialog dialog = new OpenFileDialog();
+			if(dialog.ShowDialog() == true)
+			{
+				LoadUpdates(dialog.FileName);
+			}
+		}
+
+		public void ChooseSaveUpdatesFile(object param)
+		{
+			SaveFileDialog dialog = new SaveFileDialog();
+			if(dialog.ShowDialog() == true)
+			{
+				SaveUpdates(dialog.FileName);
+			}
+		}
+
+		public void ChooseLoadEventsFile(object param)
+		{
+			OpenFileDialog dialog = new OpenFileDialog();
+			if (dialog.ShowDialog() == true)
+			{
+				LoadEvents(dialog.FileName);
+			}
+		}
+
+		public void ChooseSaveEventsFile(object param)
+		{
+			SaveFileDialog dialog = new SaveFileDialog();
+			if (dialog.ShowDialog() == true)
+			{
+				SaveEvents(dialog.FileName);
+			}
+		}
+
+		internal async Task AsyncLoadUpdates(string file)
+		{
+			using (StreamReader sr = new StreamReader(file))
+			{
+				while (!sr.EndOfStream)
+				{
+					string obj = await sr.ReadLineAsync();
+					Update u = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
+					foreach (var s in u.Schedule)
+					{
+						s.timestamp = u.clientMeta.timestamp;
+						GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
+					}
+				}
+			}
+		}
+
+		private async Task LoadUpdates(string updatesFile)
+		{
+			GameUpdates.Clear(); 
+
+			Mouse.OverrideCursor = Cursors.Wait;
+			await AsyncLoadUpdates(updatesFile);
+			Mouse.OverrideCursor = null;
+
+			OnPropertyChanged(nameof(FilteredUpdates));
+		}
+
+		private void SaveUpdates(string file)
+		{
+			StreamWriter sw = new StreamWriter(file);
+			var view = CollectionViewSource.GetDefaultView(GameUpdates);
+			foreach(GameUpdateVm obj in view)
+			{
+				string json = JsonSerializer.Serialize(obj.Update, m_serializerOptions);
+				sw.WriteLine(json);
+			}
+		}
+
+		internal async Task AsyncLoadEvents(string eventsFile)
+		{
+			using (StreamReader sr = new StreamReader(eventsFile))
+			{
+				while (!sr.EndOfStream)
+				{
+					string obj = await sr.ReadLineAsync();
+					GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
+					GameEvents.Add(new GameEventVm(e, m_teamLookup));
+				}
+			}
+		}
+
+		private async Task LoadEvents(string eventsFile)
+		{
+			GameEvents.Clear();
+
+			Mouse.OverrideCursor = Cursors.Wait;
+			await AsyncLoadEvents(eventsFile);
+			Mouse.OverrideCursor = null;
+
+			OnPropertyChanged(nameof(FilteredEvents));
+		}
+
+		private void SaveEvents(string file)
+		{
+			StreamWriter sw = new StreamWriter(file);
+			var view = CollectionViewSource.GetDefaultView(GameEvents);
+			foreach (GameEventVm obj in view)
+			{
+				string json = JsonSerializer.Serialize(obj.Event, m_serializerOptions);
+				sw.WriteLine(json);
+			}
+		}
+
 		/// <summary>
 		/// TODO: Actually pick the files to load from
 		/// </summary>
-		public void Load()
+		public async void Load()
 		{
 			BuildTeamLookup();
 
 			string updatesFile = "SampleData/updates.json";
 			string eventsFile = "SampleData/events.json";
 
-			StreamReader sr = new StreamReader(updatesFile);
-			while(!sr.EndOfStream)
-			{
-				string obj = sr.ReadLine();
-				Update u = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
-				foreach (var s in u.Schedule)
-				{
-					s.timestamp = u.clientMeta.timestamp;
-					GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
-				}
-			}
-
-			sr = new StreamReader(eventsFile);
-			while(!sr.EndOfStream)
-			{
-				string obj = sr.ReadLine();
-				GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
-				GameEvents.Add(new GameEventVm(e, m_teamLookup));
-			}
+			await LoadUpdates(updatesFile);
+			await LoadEvents(eventsFile);
 
 			this.PropertyChanged += VisualizerVm_PropertyChanged;
 		}
