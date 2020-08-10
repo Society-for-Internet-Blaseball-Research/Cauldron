@@ -182,6 +182,7 @@ namespace Cauldron
 				else
 				{
 					m_errors++;
+					m_currEvent.parsingError = true;
 					Console.WriteLine($"ERROR: Strikes went from {m_oldState.atBatStrikes} ('{m_oldState.lastUpdate}') to {newState.atBatStrikes} ('{newState.lastUpdate}') in game {newState._id}");
 				}
 			}
@@ -195,6 +196,7 @@ namespace Cauldron
 				if(!newState.lastUpdate.Contains("Ball.") || newBalls > 1)
 				{
 					m_errors++;
+					m_currEvent.parsingError = true;
 					Console.WriteLine($"ERROR: Balls went from {m_oldState.atBatBalls} ('{m_oldState.lastUpdate}') to {newState.atBatBalls} ('{newState.lastUpdate}') in game {newState._id}");
 				}
 			}
@@ -470,11 +472,13 @@ namespace Cauldron
 			if(toEmit.batterId == null)
 			{
 				m_errors++;
+				m_currEvent.parsingError = true;
 				Console.WriteLine($"ERROR: Emitted an event with NULL batterId ({toEmit.eventText.Aggregate("", (s, x) => s +"|"+x)}) in game {toEmit.gameId}");
 			}
 			if (toEmit.pitcherId == null)
 			{
 				m_errors++;
+				m_currEvent.parsingError = true;
 				Console.WriteLine($"ERROR: Emitted an event with NULL pitcherId ({toEmit.eventText.Aggregate("", (s, x) => s + "|" + x)}) in game {toEmit.gameId}");
 			}
 		}

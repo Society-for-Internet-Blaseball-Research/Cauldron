@@ -112,5 +112,7 @@ namespace Cauldron
 		{
 			return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";
 		}
+
+		public bool parsingError { get; set; }
 	}
 }
