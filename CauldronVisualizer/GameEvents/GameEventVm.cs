@@ -1,6 +1,7 @@
 ﻿using Cauldron;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CauldronVisualizer
@@ -20,6 +21,15 @@ namespace CauldronVisualizer
 					return $"Bottom of {m_event.inning + 1}, {m_event.outsBeforePlay} outs";
 			}
 		}
+
+		public string PitchesList
+		{
+			get
+			{
+				return m_event.pitchesList.Aggregate("", (s, x) => s += x);
+			}
+		}
+
 		public GameEventVm(GameEvent e)
 		{
 			m_event = e;

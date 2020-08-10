@@ -15,7 +15,6 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="2"/>
         </Grid.RowDefinitions>
 
         <TextBlock
@@ -33,15 +32,70 @@
             Style="{StaticResource BigText}"
             >
             <TextBlock.Text>
-            <MultiBinding StringFormat="{}{0} at {1}">
-                <Binding Path="Update.awayTeamName"/>
-                <Binding Path="Update.homeTeamName"/>
-            </MultiBinding>
-        </TextBlock.Text>
+                <MultiBinding StringFormat="{}{0} ({2}) at {1} ({3})">
+                    <Binding Path="Update.awayTeamName"/>
+                    <Binding Path="Update.homeTeamName"/>
+                    <Binding Path="Update.awayScore"/>
+                    <Binding Path="Update.homeScore"/>
+                </MultiBinding>
+            </TextBlock.Text>
         </TextBlock>
 
+        <Grid
+            Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="{Binding InningDescription}">
+            </TextBlock>
+            
+            <TextBlock
+                Grid.Column="1">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0}-{1}">
+                        <Binding Path="Update.atBatBalls"/>
+                        <Binding Path="Update.atBatStrikes"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <TextBlock 
+                Grid.Column="2"
+                Text="NULL BATTER"
+                Foreground="PaleVioletRed">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Update.topOfInning}" Value="true"/>
+                                    <Condition Binding="{Binding Update.awayBatter}" Value=""/>
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Update.topOfInning}" Value="false"/>
+                                    <Condition Binding="{Binding Update.homeBatter}" Value=""/>
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            
+        </Grid>
         <TextBlock 
-            Grid.Row="1" 
+            Grid.Row="2" 
             Margin="20 5 0 5"
             Style="{StaticResource SmallText}"
             Foreground="{StaticResource Bright}"

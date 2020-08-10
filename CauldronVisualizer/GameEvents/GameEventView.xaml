@@ -13,11 +13,10 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="2"/>
         </Grid.RowDefinitions>
 
         <Border
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             >
             <Border.Style>
                 <Style TargetType="Border">
@@ -35,16 +34,19 @@
             >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock
                 Style="{StaticResource SmallText}"
                 HorizontalAlignment="Right"
-                Grid.Column="1"
+                Grid.Column="3"
                 >
                 <TextBlock.Text>
                     <Binding StringFormat="{}{0}" Path="Event.gameId"/>
@@ -52,24 +54,27 @@
             </TextBlock>
             <TextBlock
                 Style="{StaticResource BigText}"
-                Text="{Binding InningDescription}">
+                Grid.Row="0"
+                Grid.Column="0">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}Away ({0}) at Home ({1})">
+                        <Binding Path="Event.awayScore"/>
+                        <Binding Path="Event.homeScore"/>
+                    </MultiBinding>
+                </TextBlock.Text>
             </TextBlock>
             <TextBlock
                 Grid.Row="1"
-                Text="{Binding Event.eventType}">
-                
-            </TextBlock>
-            <!--<TextBlock
-                TextWrapping="Wrap"
-                Grid.Column="0"
-                >
-                <TextBlock.Text>
-                    <MultiBinding StringFormat="{}{0} pitching to {1}">
-                        <Binding Path="Event.pitcherTeamId"/>
-                        <Binding Path="Event.batterTeamId"/>
-                    </MultiBinding>
-                </TextBlock.Text>
-            </TextBlock>-->
+                Text="{Binding InningDescription}"/>
+
+            <TextBlock
+                Grid.Row="2"
+                Text="{Binding Event.eventType}"/>
+
+            <TextBlock
+                Grid.Row="2"
+                Grid.Column="1"
+                Text="{Binding PitchesList}"/>
         </Grid>
         <ItemsControl
             Margin="20 10 0 10"
