@@ -8,13 +8,13 @@
     ".NETCoreApp,Version=v3.1": {
       "CauldronCli/1.0.0": {
         "dependencies": {
-          "Cauldron": "1.0.0"
+          "SIBR.Cauldron": "1.0.0"
         },
         "runtime": {
           "CauldronCli.dll": {}
         }
       },
-      "Cauldron/1.0.0": {
+      "SIBR.Cauldron/1.0.0": {
         "runtime": {
           "Cauldron.dll": {}
         }
@@ -27,7 +27,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "Cauldron/1.0.0": {
+    "SIBR.Cauldron/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

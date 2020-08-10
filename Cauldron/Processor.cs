@@ -19,6 +19,10 @@ namespace Cauldron
 
 		private readonly JsonSerializerOptions m_serializerOptions;
 
+		private bool m_batchStarted;
+		private bool m_batchUpdating;
+		private List<GameEvent> m_events;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -29,7 +33,47 @@ namespace Cauldron
 			m_serializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 
 			m_trackedGames = new Dictionary<string, GameEventParser>();
+			m_batchStarted = false;
+			m_batchUpdating = false;
+			m_events = new List<GameEvent>();
 		}
+
+		#region Batching version of the API
+		public void BatchStart()
+		{
+			m_batchStarted = true;
+		}
+
+		public void BatchProcess(StreamReader newlineDelimitedJson)
+		{
+			if (!m_batchStarted)
+				throw new InvalidOperationException("Called BatchProcessUpdate without calling BatchStart.");
+
+			m_batchUpdating = true;
+			Process(newlineDelimitedJson);
+			m_batchUpdating = false;
+		}
+		
+		public void BatchProcess(string newlineDelimitedJson)
+		{
+			if (!m_batchStarted)
+				throw new InvalidOperationException("Called BatchProcessUpdate without calling BatchStart.");
+
+			m_batchUpdating = true;
+			Process(newlineDelimitedJson);
+			m_batchUpdating = false;
+		}
+
+		public List<GameEvent> BatchEnd()
+		{
+			if (!m_batchStarted)
+				throw new InvalidOperationException("Called BatchEnd without calling BatchStart.");
+
+			m_batchStarted = false;
+			return m_events;
+		}
+		#endregion
+
 
 		private IEnumerable<GameEvent> ProcessUpdate(string obj)
 		{
@@ -70,37 +114,38 @@ namespace Cauldron
 			}
 		}
 
-
 		public IEnumerable<GameEvent> Process(StreamReader newlineDelimitedJson)
 		{
-			List<GameEvent> events = new List<GameEvent>();
+			if (m_batchStarted && !m_batchUpdating)
+				throw new InvalidOperationException("Called Process after BatchStart - use BatchProcess instead.");
 
 			while (!newlineDelimitedJson.EndOfStream)
 			{
 				string obj = newlineDelimitedJson.ReadLine();
 
 				IEnumerable<GameEvent> newEvents = ProcessUpdate(obj);
-				events.AddRange(newEvents);
+				m_events.AddRange(newEvents);
 			}
 
-			return events;
+			return m_events;
 		}
 
 		public IEnumerable<GameEvent> Process(string newlineDelimitedJson)
 		{
-			List<GameEvent> events = new List<GameEvent>();
+			if (m_batchStarted && !m_batchUpdating)
+				throw new InvalidOperationException("Called Process after BatchStart - use BatchProcess instead.");
 
 			StringReader sr = new StringReader(newlineDelimitedJson);
 			string line = sr.ReadLine();
 			while (line != null)
 			{
 				IEnumerable<GameEvent> newEvents = ProcessUpdate(line);
-				events.AddRange(newEvents);
+				m_events.AddRange(newEvents);
 
 				line = sr.ReadLine();
 			}
 
-			return events;
+			return m_events;
 		}
 
 		/// <summary>
