@@ -149,7 +149,7 @@ namespace CauldronVisualizer
 				foreach (var s in u.Schedule)
 				{
 					s.timestamp = u.clientMeta.timestamp;
-					GameUpdates.Add(new GameUpdateVm(s));
+					GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
 				}
 			}
 

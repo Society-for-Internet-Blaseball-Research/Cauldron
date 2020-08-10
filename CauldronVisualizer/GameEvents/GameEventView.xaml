@@ -4,6 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:CauldronVisualizer.GameEvents"
+      xmlns:controls="clr-namespace:CauldronVisualizer.Controls"
       mc:Ignorable="d" 
 >
 
@@ -65,30 +66,14 @@
                     <Binding StringFormat="{}{0}" Path="Event.gameId"/>
                 </TextBlock.Text>
             </TextBlock>
-            <TextBlock
-                Style="{StaticResource BigText}"
-                Grid.Row="0"
-                Grid.Column="0">
-                <Run
-                    Foreground="{Binding AwayTeamColor}"
-                    >
-                    <Run.Text>
-                        <MultiBinding StringFormat="{}{0} ({1})">
-                            <Binding Path="AwayTeamName" Mode="OneWay"/>
-                            <Binding Path="Event.awayScore"/>
-                        </MultiBinding>
-                    </Run.Text>
-                </Run>
-                <Run> at </Run>
-                <Run Foreground="{Binding HomeTeamColor}">
-                    <Run.Text>
-                        <MultiBinding StringFormat="{}{0} ({1})">
-                            <Binding Path="HomeTeamName" Mode="OneWay"/>
-                            <Binding Path="Event.homeScore"/>
-                        </MultiBinding>
-                    </Run.Text>
-                </Run>
-            </TextBlock>
+            <controls:MatchupAndScore
+                AwayTeamName="{Binding AwayTeamName}"
+                AwayTeamScore="{Binding Event.awayScore}"
+                AwayColorBrush="{Binding AwayTeamColor}"
+                HomeTeamName="{Binding HomeTeamName}"
+                HomeTeamScore="{Binding Event.homeScore}"
+                HomeColorBrush="{Binding HomeTeamColor}"/>
+
             <TextBlock
                 Grid.Row="1"
                 Text="{Binding InningDescription}"/>
