@@ -4,11 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
@@ -16,12 +18,20 @@ namespace CauldronVisualizer
 {
 	internal class VisualizerVm : INotifyPropertyChanged
 	{
+		private static float COUNT_DELAY = 2.0f;
+
 		public event PropertyChangedEventHandler PropertyChanged;
 		public void OnPropertyChanged(string propName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 
 		private JsonSerializerOptions m_serializerOptions;
 
-		public ObservableCollection<GameUpdateVm> GameUpdates { get; set; }
+		public ObservableCollectionEx<GameUpdateVm> GameUpdates { get; set; }
+
+		public int GameUpdatesDelayedCount 
+		{
+			get { return GameUpdates.Count; }
+		}
+
 		public GameUpdateVm SelectedGameUpdate 
 		{
 			get { return m_selectedGameUpdate; }
@@ -32,7 +42,12 @@ namespace CauldronVisualizer
 			}
 		}
 		private GameUpdateVm m_selectedGameUpdate;
-		public ObservableCollection<GameEventVm> GameEvents { get; set; }
+		public ObservableCollectionEx<GameEventVm> GameEvents { get; set; }
+		public int GameEventsDelayedCount
+		{
+			get { return GameEvents.Count; }
+		}
+
 		public GameEventVm SelectedGameEvent
 		{
 			get { return m_selectedGameEvent; }
@@ -44,10 +59,50 @@ namespace CauldronVisualizer
 		}
 		private GameEventVm m_selectedGameEvent;
 
+		private Stopwatch m_stopwatch;
+
+		public bool UpdatesDisabled
+		{
+			get { return m_updatesDisabled; }
+			set
+			{
+				m_updatesDisabled = value;
+				OnPropertyChanged(nameof(UpdatesDisabled));
+			}
+		}
+		private bool m_updatesDisabled;
+
+		public bool EventsDisabled
+		{
+			get { return m_eventsDisabled; }
+			set
+			{
+				m_eventsDisabled = value;
+				OnPropertyChanged(nameof(EventsDisabled));
+			}
+		}
+		private bool m_eventsDisabled;
+
+		public bool LoadSaveEnabled
+		{
+			get { return m_loadSaveEnabled; }
+			set
+			{
+				m_loadSaveEnabled = value;
+				OnPropertyChanged(nameof(LoadSaveEnabled));
+}
+		}
+		private bool m_loadSaveEnabled;
+
 		#region Filtering
 		public ICommand FilterCommand => m_filterCommand;
 		DelegateCommand m_filterCommand;
 
+		public ICommand FilterToGameCommand => m_filterToGameCommand;
+		DelegateCommand m_filterToGameCommand;
+
+		public ICommand ClearFilterCommand => m_clearFilterCommand;
+		DelegateCommand m_clearFilterCommand;
 		public ICommand LoadUpdatesCommand => m_loadUpdatesCommand;
 		DelegateCommand m_loadUpdatesCommand;
 
@@ -60,7 +115,19 @@ namespace CauldronVisualizer
 		public ICommand SaveEventsCommand => m_saveEventsCommand;
 		DelegateCommand m_saveEventsCommand;
 
-		string m_filterString;
+		public ICommand ConvertCommand => m_convertCommand;
+		DelegateCommand m_convertCommand;
+
+		public string FilterText
+		{
+			get { return m_filterText; }
+			set 
+			{
+				m_filterText = value;
+				OnPropertyChanged(nameof(FilterText));
+			}
+		}
+		private string m_filterText;
 
 		ICollectionView m_updatesCv;
 		ICollectionView m_eventsCv;
@@ -89,22 +156,65 @@ namespace CauldronVisualizer
 			m_serializerOptions = new JsonSerializerOptions();
 			m_serializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 
-			GameUpdates = new ObservableCollection<GameUpdateVm>();
-			GameEvents = new ObservableCollection<GameEventVm>();
+			GameUpdates = new ObservableCollectionEx<GameUpdateVm>();
+			GameEvents = new ObservableCollectionEx<GameEventVm>();
 
-			m_filterCommand = new DelegateCommand(Filter);
-			m_filterString = null;
+			m_convertCommand = new DelegateCommand(ConvertUpdates, CanConvertUpdates);
 
 			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
 			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
 			m_saveUpdatesCommand = new DelegateCommand(ChooseSaveUpdatesFile);
 			m_saveEventsCommand = new DelegateCommand(ChooseSaveEventsFile);
 
+			m_filterCommand = new DelegateCommand(Filter);
+			m_filterToGameCommand = new DelegateCommand(FilterToGame);
+			m_clearFilterCommand = new DelegateCommand(ClearFilter);
+			m_filterText = null;
 			m_updatesCv = CollectionViewSource.GetDefaultView(GameUpdates);
 			m_updatesCv.Filter = FilterGameUpdates;
-
 			m_eventsCv = CollectionViewSource.GetDefaultView(GameEvents);
 			m_eventsCv.Filter = FilterGameEvents;
+
+			LoadSaveEnabled = true;
+			EventsDisabled = false;
+			UpdatesDisabled = false;
+		}
+
+		private bool CanConvertUpdates(object obj)
+		{
+			return m_updatesCv.Cast<object>().Count() > 0;
+		}
+
+		private async Task AsyncConvertUpdates()
+		{
+			Processor processor = new Processor();
+			GameEvents.Clear();
+			GameEvents.SupressNotification = true;
+			foreach (GameUpdateVm vm in m_updatesCv)
+			{
+				GameEvent newEvent = processor.ProcessGame(vm.Update, vm.Update.timestamp);
+				if (newEvent != null)
+				{
+					GameEvents.Add(new GameEventVm(newEvent, m_teamLookup));
+				}
+			}
+			GameEvents.SupressNotification = false;
+		}
+
+		private async Task ConvertUpdates()
+		{
+			EventsDisabled = true;
+			UpdatesDisabled = true;
+			LoadSaveEnabled = false;
+			await AsyncConvertUpdates();
+			LoadSaveEnabled = true;
+			UpdatesDisabled = false;
+			EventsDisabled = false;
+		}
+
+		private void ConvertUpdates(object obj)
+		{
+			ConvertUpdates();
 		}
 
 		public void BuildTeamLookup()
@@ -124,30 +234,42 @@ namespace CauldronVisualizer
 
 		public bool FilterGameUpdates(object item)
 		{
-			if (m_filterString == null || m_filterString == "") return true;
+			if (m_filterText == null || m_filterText == "") return true;
 
 			GameUpdateVm updateVm = item as GameUpdateVm;
 
-			return updateVm?.Update?._id.Contains(m_filterString) ?? false;
+			return updateVm?.Update?._id.Contains(m_filterText) ?? false;
 		}
 
 		public bool FilterGameEvents(object item)
 		{
-			if (m_filterString == null || m_filterString == "") return true;
+			if (m_filterText == null || m_filterText == "") return true;
 
 			GameEventVm eventVm = item as GameEventVm;
 
-			return eventVm?.Event?.gameId.Contains(m_filterString) ?? false;
+			return eventVm?.Event?.gameId.Contains(m_filterText) ?? false;
+		}
+
+		public void FilterToGame(object param)
+		{
+			FilterText = param as string;
+			Filter(null);
+		}
+
+		public void ClearFilter(object param)
+		{
+			FilterText = "";
+			Filter(null);
 		}
 
 		public void Filter(object param)
 		{
-			m_filterString = param as string;
+			m_updatesCv.Refresh();
+			m_eventsCv.Refresh();
 
-			CollectionViewSource.GetDefaultView(GameUpdates).Refresh();
-			CollectionViewSource.GetDefaultView(GameEvents).Refresh();
 			OnPropertyChanged(nameof(FilteredEvents));
 			OnPropertyChanged(nameof(FilteredUpdates));
+			m_convertCommand.RaiseCanExecuteChanged();
 		}
 
 		public void ChooseLoadUpdateFile(object param)
@@ -189,53 +311,98 @@ namespace CauldronVisualizer
 
 		internal async Task AsyncLoadUpdates(string file)
 		{
-			using (StreamReader sr = new StreamReader(file))
+			try
 			{
-				while (!sr.EndOfStream)
+				GameUpdates.SupressNotification = true;
+				m_stopwatch = new Stopwatch();
+				m_stopwatch.Start();
+				OnPropertyChanged(nameof(GameUpdatesDelayedCount));
+				using (StreamReader sr = new StreamReader(file))
 				{
-					string obj = await sr.ReadLineAsync();
-					Update u = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
-					foreach (var s in u.Schedule)
+					while (!sr.EndOfStream)
 					{
-						s.timestamp = u.clientMeta.timestamp;
-						GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
+						string obj = await sr.ReadLineAsync();
+						Update u = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
+						foreach (var s in u.Schedule)
+						{
+							s.timestamp = u.clientMeta.timestamp;
+							GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
+						}
+						if (m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
+						{
+							OnPropertyChanged(nameof(GameUpdatesDelayedCount));
+							m_stopwatch.Restart();
+						}
+
 					}
 				}
+				m_stopwatch.Stop();
+
+				GameUpdates.SupressNotification = false;
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("Something invalid happened.", "BLASPHEMY");
 			}
 		}
 
 		private async Task LoadUpdates(string updatesFile)
 		{
-			GameUpdates.Clear(); 
+			GameUpdates.Clear();
 
+			LoadSaveEnabled = false;
+			UpdatesDisabled = true;
 			Mouse.OverrideCursor = Cursors.Wait;
 			await AsyncLoadUpdates(updatesFile);
 			Mouse.OverrideCursor = null;
+			UpdatesDisabled = false;
+			LoadSaveEnabled = true;
 
+			m_convertCommand.RaiseCanExecuteChanged();
 			OnPropertyChanged(nameof(FilteredUpdates));
 		}
 
 		private void SaveUpdates(string file)
 		{
-			StreamWriter sw = new StreamWriter(file);
-			var view = CollectionViewSource.GetDefaultView(GameUpdates);
-			foreach(GameUpdateVm obj in view)
+			using (StreamWriter sw = new StreamWriter(file))
 			{
-				string json = JsonSerializer.Serialize(obj.Update, m_serializerOptions);
-				sw.WriteLine(json);
+				foreach (GameUpdateVm obj in m_updatesCv)
+				{
+					string json = JsonSerializer.Serialize(obj.Update, m_serializerOptions);
+					sw.WriteLine(json);
+				}
 			}
 		}
 
 		internal async Task AsyncLoadEvents(string eventsFile)
 		{
-			using (StreamReader sr = new StreamReader(eventsFile))
+			try
 			{
-				while (!sr.EndOfStream)
+				GameEvents.SupressNotification = true;
+				m_stopwatch = new Stopwatch();
+				m_stopwatch.Start();
+				OnPropertyChanged(nameof(GameEventsDelayedCount));
+				using (StreamReader sr = new StreamReader(eventsFile))
 				{
-					string obj = await sr.ReadLineAsync();
-					GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
-					GameEvents.Add(new GameEventVm(e, m_teamLookup));
+					while (!sr.EndOfStream)
+					{
+						string obj = await sr.ReadLineAsync();
+						GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
+						GameEvents.Add(new GameEventVm(e, m_teamLookup));
+						if(m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
+						{
+							OnPropertyChanged(nameof(GameEventsDelayedCount));
+							m_stopwatch.Restart();
+						}
+					}
 				}
+				m_stopwatch.Stop();
+
+				GameEvents.SupressNotification = false;
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("Something invalid happened.", "BLASPHEMY");
 			}
 		}
 
@@ -243,21 +410,26 @@ namespace CauldronVisualizer
 		{
 			GameEvents.Clear();
 
+			LoadSaveEnabled = false;
+			EventsDisabled = true;
 			Mouse.OverrideCursor = Cursors.Wait;
 			await AsyncLoadEvents(eventsFile);
 			Mouse.OverrideCursor = null;
+			EventsDisabled = false;
+			LoadSaveEnabled = true;
 
 			OnPropertyChanged(nameof(FilteredEvents));
 		}
 
 		private void SaveEvents(string file)
 		{
-			StreamWriter sw = new StreamWriter(file);
-			var view = CollectionViewSource.GetDefaultView(GameEvents);
-			foreach (GameEventVm obj in view)
+			using (StreamWriter sw = new StreamWriter(file))
 			{
-				string json = JsonSerializer.Serialize(obj.Event, m_serializerOptions);
-				sw.WriteLine(json);
+				foreach (GameEventVm obj in m_eventsCv)
+				{
+					string json = JsonSerializer.Serialize(obj.Event, m_serializerOptions);
+					sw.WriteLine(json);
+				}
 			}
 		}
 
@@ -268,18 +440,18 @@ namespace CauldronVisualizer
 		{
 			BuildTeamLookup();
 
-			string updatesFile = "SampleData/updates.json";
-			string eventsFile = "SampleData/events.json";
+			//string updatesFile = "SampleData/updates.json";
+			//string eventsFile = "SampleData/events.json";
 
-			await LoadUpdates(updatesFile);
-			await LoadEvents(eventsFile);
+			//await LoadUpdates(updatesFile);
+			//await LoadEvents(eventsFile);
 
 			this.PropertyChanged += VisualizerVm_PropertyChanged;
 		}
 
 		private GameEventVm FindEvent(string gameId, DateTime timestamp)
 		{
-			foreach(var obj in CollectionViewSource.GetDefaultView(GameEvents))
+			foreach(var obj in m_eventsCv)
 			{
 				GameEventVm vm = obj as GameEventVm;
 
@@ -294,7 +466,7 @@ namespace CauldronVisualizer
 
 		private GameUpdateVm FindUpdate(string gameId, DateTime timestamp)
 		{
-			foreach (var obj in CollectionViewSource.GetDefaultView(GameUpdates))
+			foreach (var obj in m_updatesCv)
 			{
 				GameUpdateVm vm = obj as GameUpdateVm;
 

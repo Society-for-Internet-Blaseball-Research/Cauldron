@@ -6,6 +6,9 @@
              xmlns:local="clr-namespace:CauldronVisualizer"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
     <Grid
         HorizontalAlignment="Stretch"
         VerticalAlignment="Stretch"
@@ -32,22 +35,36 @@
                 x:Name="m_filter"
                 Width="500"
                 Margin="5"
+                Text="{Binding FilterText, Mode=TwoWay}"
+                IsEnabled="{Binding LoadSaveEnabled}"
             >
                 <TextBox.InputBindings>
                     <KeyBinding 
                         Command="{Binding FilterCommand}" 
                         Key="Return"
-                        CommandParameter="{Binding ElementName=m_filter,Path=Text}"/>
+                        />
+                    <KeyBinding
+                        Command="{Binding ClearFilterCommand}"
+                        Key="Esc"
+                        />
                 </TextBox.InputBindings>
             </TextBox>
             <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
                 Style="{StaticResource BaseStyle}"
                 Width="80"
                 Margin="5"
                 Content="Filter"
                 Command="{Binding FilterCommand}"
-                CommandParameter="{Binding ElementName=m_filter, Path=Text}">
-            </Button>
+                />
+            <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
+                Style="{StaticResource BaseStyle}"
+                Width="80"
+                Margin="5"
+                Content="Clear"
+                Command="{Binding ClearFilterCommand}"
+                />
         </StackPanel>
 
         <TextBlock
@@ -73,6 +90,7 @@
             Grid.Column="0"
             >
             <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
                 Content="Load Updates..."
                 Height="30"
                 Width="200"
@@ -80,6 +98,7 @@
                 Command="{Binding LoadUpdatesCommand}"
                 />
             <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
                 Margin="10 0 0 0"
                 Content="Save Updates..."
                 Height="30"
@@ -89,6 +108,19 @@
                 />
         </StackPanel>
 
+        <Button
+            HorizontalAlignment="Center"
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
+            Content=">>> CONVERT >>>"
+            Style="{StaticResource BaseStyle}"
+            Padding="10 0"
+            FontSize="16"
+            Command="{Binding ConvertCommand}"
+            >
+            
+        </Button>
         <StackPanel
             HorizontalAlignment="Center"
             Orientation="Horizontal"
@@ -96,6 +128,7 @@
             Grid.Column="2"
             >
             <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
                 Content="Load Events..."
                 Height="30"
                 Width="200"
@@ -103,6 +136,7 @@
                 Command="{Binding LoadEventsCommand}"
                 />
             <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
                 Margin="10 0 0 0"
                 Content="Save Events..."
                 Height="30"
@@ -113,6 +147,7 @@
         </StackPanel>
 
         <ListBox
+            BorderThickness="0"
             Name="m_updates"
             Grid.Row="3"
             AlternationCount="2"
@@ -124,8 +159,14 @@
             SelectedItem="{Binding SelectedGameUpdate}"
             HorizontalContentAlignment="Stretch"
             >
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Filter to this game" Command="{Binding FilterToGameCommand}" CommandParameter="{Binding SelectedGameUpdate.Update._id}"/>
+                </ContextMenu>
+            </ListBox.ContextMenu>
         </ListBox>
         <ListBox
+            BorderThickness="0"
             Name="m_events"
             Grid.Row="3"
             AlternationCount="2"
@@ -137,7 +178,61 @@
             SelectedItem="{Binding SelectedGameEvent}"
             HorizontalContentAlignment="Stretch"
             >
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Filter to this game" Command="{Binding FilterToGameCommand}" CommandParameter="{Binding SelectedGameEvent.Event.gameId}"/>
+                </ContextMenu>
+            </ListBox.ContextMenu>
         </ListBox>
+        <Border
+            Grid.Row="3"
+            Background="#99222222"
+            Visibility="{Binding UpdatesDisabled, Converter={StaticResource BoolToVisibilityConverter}}"
+            >
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Vertical">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="Please Wait..."
+                    FontSize="48"
+                    />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="24"
+                    >
+                    <TextBlock.Text>
+                        <Binding StringFormat="Loading {0:#,0} records" Path="GameUpdatesDelayedCount"/>
+                    </TextBlock.Text>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+        <Border
+            Grid.Row="3"
+            Grid.Column="2"
+            Background="#99222222"
+            Visibility="{Binding EventsDisabled, Converter={StaticResource BoolToVisibilityConverter}}"
+            >
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Vertical">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="Please Wait..."
+                    FontSize="48"
+                    />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="24"
+                    >
+                    <TextBlock.Text>
+                        <Binding StringFormat="Loading {0:#,0} records" Path="GameEventsDelayedCount"/>
+                    </TextBlock.Text>
+                </TextBlock>
+            </StackPanel>
+        </Border>
 
     </Grid>
 </UserControl>

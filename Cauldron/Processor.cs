@@ -57,10 +57,20 @@ namespace Cauldron
 		public void BatchProcess(string newlineDelimitedJson)
 		{
 			if (!m_batchStarted)
-				throw new InvalidOperationException("Called BatchProcessUpdate without calling BatchStart.");
+				throw new InvalidOperationException("Called BatchProcess without calling BatchStart.");
 
 			m_batchUpdating = true;
 			Process(newlineDelimitedJson);
+			m_batchUpdating = false;
+		}
+
+		public void BatchProcess(Game game, DateTime timestamp)
+		{
+			if (!m_batchStarted)
+				throw new InvalidOperationException("Called BatchProcess without calling BatchStart.");
+
+			m_batchUpdating = true;
+			ProcessGame(game, timestamp);
 			m_batchUpdating = false;
 		}
 
@@ -74,6 +84,34 @@ namespace Cauldron
 		}
 		#endregion
 
+
+		public GameEvent ProcessGame(Game game, DateTime timestamp)
+		{
+			if (m_batchStarted && !m_batchUpdating)
+				throw new InvalidOperationException("Called ProcessGame after BatchStart - use BatchProcess instead.");
+
+			// Add new games if needed
+			if (!m_trackedGames.ContainsKey(game._id))
+			{
+				GameEventParser parser = new GameEventParser();
+				parser.StartNewGame(game, timestamp);
+
+				m_trackedGames[game._id] = parser;
+			}
+			else
+			{
+				// Update a current game
+				GameEventParser parser = m_trackedGames[game._id];
+				GameEvent latest = parser.ParseGameUpdate(game, timestamp);
+
+				if (latest != null)
+				{
+					return latest;
+				}
+			}
+
+			return null;
+		}
 
 		private IEnumerable<GameEvent> ProcessUpdate(string obj)
 		{
@@ -92,25 +130,9 @@ namespace Cauldron
 			// Currently we only care about the 'schedule' field that has the game updates
 			foreach (var game in update.Schedule)
 			{
-				// Add new games if needed
-				if (!m_trackedGames.ContainsKey(game._id))
-				{
-					GameEventParser parser = new GameEventParser();
-					parser.StartNewGame(game, update.clientMeta.timestamp);
-
-					m_trackedGames[game._id] = parser;
-				}
-				else
-				{
-					// Update a current game
-					GameEventParser parser = m_trackedGames[game._id];
-					GameEvent latest = parser.ParseGameUpdate(game, update.clientMeta.timestamp);
-
-					if (latest != null)
-					{
-						yield return latest;
-					}
-				}
+				var latest = ProcessGame(game, update.clientMeta.timestamp);
+				if (latest != null)
+					yield return latest;
 			}
 		}
 

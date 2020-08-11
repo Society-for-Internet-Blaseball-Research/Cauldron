@@ -55,7 +55,13 @@
                 <Setter Property="Background" Value="{StaticResource Dim}"/>
             </Trigger>
         </Style.Triggers>
-        
+    </Style>
+
+    <Style
+        TargetType="{x:Type ScrollBar}"
+        >
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="{StaticResource Dim}"/>
     </Style>
 
     <DataTemplate DataType="{x:Type local:GameUpdateVm}">
