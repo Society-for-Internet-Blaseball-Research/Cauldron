@@ -2,7 +2,7 @@
   "profiles": {
     "CauldronCli": {
       "commandName": "Project",
-      "commandLineArgs": "blaseball-sample-log.json sample-output.json"
+      "commandLineArgs": "D:\\Users\\Mark\\Downloads\\blaseball-log-1596003134151.json\\blaseball-log-1596003134151.json D:\\Users\\Mark\\Downloads\\blaseball-log-1596003134151.json\\log.sibr"
     }
   }
 }

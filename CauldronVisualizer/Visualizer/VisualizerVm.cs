@@ -112,6 +112,10 @@ namespace CauldronVisualizer
 
 		public ICommand ShowJsonCommand => m_showJsonCommand;
 		DelegateCommand m_showJsonCommand;
+
+		public ICommand ExportToCsvCommand => m_exportToCsvCommand;
+		DelegateCommand m_exportToCsvCommand;
+
 		#region Filtering
 		public ICommand FilterCommand => m_filterCommand;
 		DelegateCommand m_filterCommand;
@@ -346,7 +350,10 @@ namespace CauldronVisualizer
 						Update u = JsonSerializer.Deserialize<Update>(obj, s_diskOptions);
 						foreach (var s in u.Schedule)
 						{
-							s.timestamp = u.clientMeta.timestamp;
+							if (u.clientMeta != null)
+							{
+								s.timestamp = u.clientMeta.timestamp;
+							}
 							GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
 						}
 						if (m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
@@ -363,6 +370,7 @@ namespace CauldronVisualizer
 			}
 			catch (Exception ex)
 			{
+				Console.WriteLine(ex.Message);
 				MessageBox.Show("Something invalid happened.", "BLASPHEMY");
 			}
 		}

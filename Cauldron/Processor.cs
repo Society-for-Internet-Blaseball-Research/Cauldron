@@ -130,7 +130,15 @@ namespace Cauldron
 			// Currently we only care about the 'schedule' field that has the game updates
 			foreach (var game in update.Schedule)
 			{
-				var latest = ProcessGame(game, update.clientMeta.timestamp);
+				var timestamp = update?.clientMeta?.timestamp;
+
+				// If timestamp is missing, just set to unix time 0
+				if(timestamp == null)
+				{
+					timestamp = TimestampConverter.unixEpoch;
+				}
+
+				var latest = ProcessGame(game, timestamp.Value);
 				if (latest != null)
 					yield return latest;
 			}

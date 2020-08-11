@@ -8,7 +8,7 @@ namespace Cauldron
 {
 	public class TimestampConverter : JsonConverter<DateTime>
 	{
-		private static DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+		public static DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 		public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 		{
 			long milliseconds = reader.GetInt64();
