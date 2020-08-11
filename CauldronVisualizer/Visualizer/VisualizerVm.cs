@@ -368,7 +368,14 @@ namespace CauldronVisualizer
 			{
 				foreach (GameUpdateVm obj in m_updatesCv)
 				{
-					string json = JsonSerializer.Serialize(obj.Update, m_serializerOptions);
+					// Construct a lousy Update
+					Update u = new Update();
+					u.Schedule = new List<Game>();
+					u.Schedule.Add(obj.Update);
+					u.clientMeta = new ClientMeta();
+					u.clientMeta.timestamp = obj.Update.timestamp;
+
+					string json = JsonSerializer.Serialize(u, m_serializerOptions);
 					sw.WriteLine(json);
 				}
 			}
