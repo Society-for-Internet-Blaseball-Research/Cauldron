@@ -211,10 +211,11 @@ namespace Cauldron
 		/// </summary>
 		private void UpdateOuts(Game newState)
 		{
-			// If we had two outs but suddenly the inning changed, that means the 3rd out happened silently
-			if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts == 2)
+			// If the inning suddenly changed, that means this play got all the rest of the outs
+			// TODO: triple plays if implemented
+			if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts > 0)
 			{
-				m_currEvent.outsOnPlay = 1;
+				m_currEvent.outsOnPlay = 3 - m_oldState.halfInningOuts;
 			}
 			else
 			{
