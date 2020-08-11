@@ -18,11 +18,11 @@ jobs:
       with:
         dotnet-version: 3.1.301
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore ./Cauldron/Cauldron.csproj
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build ./Cauldron/Cauldron.csproj --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test ./Cauldron/Cauldron.csproj --no-restore --verbosity normal
   publish:
     runs-on: ubuntu-latest
     steps:
