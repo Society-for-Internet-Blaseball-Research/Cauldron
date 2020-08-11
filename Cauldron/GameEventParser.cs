@@ -35,10 +35,6 @@ namespace Cauldron
 
 		Dictionary<string, string> m_playerNameToId;
 		
-		// Special handling for caught stealing
-		bool m_wasCaughtStealing = false;
-		string m_caughtStealingBatter;
-
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_playerNameToId = new Dictionary<string, string>();
@@ -126,13 +122,6 @@ namespace Cauldron
 			currEvent.batterTeamId = GetBatterTeamId(newState);
 			currEvent.pitcherId = GetPitcherId(newState);
 			currEvent.pitcherTeamId = GetPitcherTeamId(newState);
-
-			// Special fixup for caught stealing
-			if (m_wasCaughtStealing && (currEvent.batterId == null || currEvent.batterId == ""))
-			{
-				currEvent.batterId = m_caughtStealingBatter;
-			}
-			m_wasCaughtStealing = false;
 
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
@@ -326,15 +315,6 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("caught stealing"))
 			{
 				m_currEvent.eventType = GameEventType.CAUGHT_STEALING;
-				
-				// SPECIAL GNARLY CASE: someone was caught stealing. If the next update ends the at-bat, it won't have a batter ID on it!
-				// So we need to special cache-off the batter ID. But only if this caught stealing doesn't end the half-inning anyway
-				// Depend on Outs being calculated before this
-				if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay < 3)
-				{
-					m_wasCaughtStealing = true;
-					m_caughtStealingBatter = m_currEvent.batterId;
-				}
 			}
 		}
 
@@ -560,7 +540,7 @@ namespace Cauldron
 			{
 				GameEvent emitted = m_currEvent;
 
-				if (m_currEvent.isSteal)
+				if (m_currEvent.isSteal || m_currEvent.eventType == GameEventType.CAUGHT_STEALING)
 				{
 					// Start the next event in this state
 					m_currEvent = CreateNewGameEvent(newState, timeStamp);
