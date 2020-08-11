@@ -176,6 +176,7 @@ namespace CauldronVisualizer
 
 			m_convertCommand = new DelegateCommand(ConvertUpdates, CanConvertUpdates);
 			m_showJsonCommand = new DelegateCommand(ShowJson);
+			m_exportToCsvCommand = new DelegateCommand(ExportToCsv);
 
 			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
 			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
@@ -194,6 +195,39 @@ namespace CauldronVisualizer
 			LoadSaveEnabled = true;
 			EventsDisabled = false;
 			UpdatesDisabled = false;
+		}
+
+		/// <summary>
+		/// Build a custom CSV file for use on the Fourth Strike project
+		/// </summary>
+		/// <param name="obj"></param>
+		private void ExportToCsv(object obj)
+		{
+			SaveFileDialog dialog = new SaveFileDialog();
+			if (dialog.ShowDialog() == true)
+			{
+				using (var stream = new StreamWriter(dialog.FileName))
+				{
+					var first = m_eventsCv.Cast<GameEventVm>().First().Event;
+					stream.WriteLine("INSTRUCTIONS: move down the chart starting at any fourth-strike situations and figure the new inning and out for each batter in the New Inning / New Outs Before columns. Also figure out the RBI Adjust if applicable.");
+					stream.WriteLine("GameId,AwayTeam,HomeTeam,OldAwayScore,OldHomeScore,NewAwayScore,NewHomeScore");
+
+					stream.WriteLine($"{first.gameId},{first.batterTeamId},{first.pitcherTeamId},{first.awayScore},{first.homeScore},,");
+
+					stream.WriteLine();
+					stream.WriteLine();
+
+					stream.WriteLine("Top,Old Inning,Old Outs Before,Balls,Strikes,Event Type,New Event Type,New Inning,New Outs Before,Old RBIs,RBI Adjust,Comment,Batter,Last Text");
+					foreach(var ev in m_eventsCv.Cast<GameEventVm>().Select(x=>x.Event))
+					{
+						string eventText = ev.eventText.Last();
+						eventText = eventText.Trim(',');
+						stream.Write($"{ (ev.topOfInning ? "Top" : "Bot") },{ev.inning+1},{ev.outsBeforePlay},{ev.totalBalls},{ev.totalStrikes},{ev.eventType},,,,{ev.runsBattedIn},,,{ev.batterId},{eventText}");
+						stream.WriteLine();
+					}
+				}
+			}
+
 		}
 
 		private void ShowJson(object obj)

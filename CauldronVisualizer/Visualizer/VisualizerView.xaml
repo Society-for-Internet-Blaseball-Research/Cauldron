@@ -131,7 +131,7 @@
                 IsEnabled="{Binding LoadSaveEnabled}"
                 Content="Load Events..."
                 Height="30"
-                Width="200"
+                Width="160"
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding LoadEventsCommand}"
                 />
@@ -140,9 +140,19 @@
                 Margin="10 0 0 0"
                 Content="Save Events..."
                 Height="30"
-                Width="200"
+                Width="160"
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding SaveEventsCommand}"
+                />
+            <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
+                Margin="10 0 0 0"
+                Content="Export to CSV..."
+                ToolTip="For use in Fourth Strike rescoring"
+                Height="30"
+                Width="160"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding ExportToCsvCommand}"
                 />
         </StackPanel>
 
