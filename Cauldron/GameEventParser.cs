@@ -402,6 +402,8 @@ namespace Cauldron
 				{
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
+					// TODO: this ain't right, the current pitcher isn't responsible for all runners
+					runner.responsiblePitcherId = GetPitcherId(m_oldState);
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
 					if (newState.lastUpdate.Contains("steals"))
