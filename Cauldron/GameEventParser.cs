@@ -588,7 +588,8 @@ namespace Cauldron
 			m_oldState = newState;
 
 			// If we had outs or hits or a walk or a steal, emit
-			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk)
+			// OR IF THE GAME IS OVER, duh
+			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk || m_currEvent.isLastGameEvent)
 			{
 				GameEvent emitted = m_currEvent;
 
