@@ -502,13 +502,13 @@ namespace Cauldron
 			{
 				m_errors++;
 				toEmit.parsingError = true;
-				m_currEvent.parsingErrorList.Add($"Emitted an event with NULL batterId");
+				toEmit.parsingErrorList.Add($"Emitted an event with NULL batterId");
 			}
 			if (toEmit.pitcherId == null)
 			{
 				m_errors++;
 				toEmit.parsingError = true;
-				m_currEvent.parsingErrorList.Add($"Emitted an event with NULL pitcherId");
+				toEmit.parsingErrorList.Add($"Emitted an event with NULL pitcherId");
 			}
 		}
 
