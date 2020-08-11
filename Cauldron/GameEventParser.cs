@@ -95,6 +95,8 @@ namespace Cauldron
 			CapturePlayerIds(newState);
 
 			GameEvent currEvent = new GameEvent();
+			currEvent.parsingError = false;
+			currEvent.parsingErrorList = new List<string>();
 
 			currEvent.firstPerceivedAt = timeStamp;
 
@@ -172,7 +174,7 @@ namespace Cauldron
 				{
 					m_errors++;
 					m_currEvent.parsingError = true;
-					Console.WriteLine($"ERROR: Strikes went from {m_oldState.atBatStrikes} ('{m_oldState.lastUpdate}') to {newState.atBatStrikes} ('{newState.lastUpdate}') in game {newState._id}");
+					m_currEvent.parsingErrorList.Add($"Strikes went from {m_oldState.atBatStrikes} ('{m_oldState.lastUpdate}') to {newState.atBatStrikes} ('{newState.lastUpdate}')");
 				}
 			}
 
@@ -186,7 +188,7 @@ namespace Cauldron
 				{
 					m_errors++;
 					m_currEvent.parsingError = true;
-					Console.WriteLine($"ERROR: Balls went from {m_oldState.atBatBalls} ('{m_oldState.lastUpdate}') to {newState.atBatBalls} ('{newState.lastUpdate}') in game {newState._id}");
+					m_currEvent.parsingErrorList.Add($"Balls went from {m_oldState.atBatBalls} ('{m_oldState.lastUpdate}') to {newState.atBatBalls} ('{newState.lastUpdate}')");
 				}
 			}
 			else if (newState.lastUpdate.Contains("walk"))
@@ -396,7 +398,7 @@ namespace Cauldron
 				// newState might already have jumped to the next inning, so check old
 				int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
 				int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
-				if(!found && (newState.halfInningOuts == m_oldState.halfInningOuts || newScore > oldScore))
+				if (!found && (m_currEvent.outsOnPlay == 0 || newScore > oldScore))
 				{
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
@@ -407,6 +409,20 @@ namespace Cauldron
 						runner.wasBaseStolen = true;
 					}
 					m_currEvent.baseRunners.Add(runner);
+				}
+				else if (!found && m_currEvent.outsOnPlay > 0)
+				{
+					// Fine, he was out
+				}
+				else if(found)
+				{
+					// Fine, he was found
+				}
+				else
+				{ 
+					// What the hell else could have happened?
+					m_currEvent.parsingError = true;
+					m_currEvent.parsingErrorList.Add($"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
 				}
 			}
 		}
@@ -486,13 +502,13 @@ namespace Cauldron
 			{
 				m_errors++;
 				toEmit.parsingError = true;
-				Console.WriteLine($"ERROR: Emitted an event with NULL batterId ({toEmit.eventText.Aggregate("", (s, x) => s +"|"+x)}) in game {toEmit.gameId}");
+				m_currEvent.parsingErrorList.Add($"Emitted an event with NULL batterId");
 			}
 			if (toEmit.pitcherId == null)
 			{
 				m_errors++;
 				toEmit.parsingError = true;
-				Console.WriteLine($"ERROR: Emitted an event with NULL pitcherId ({toEmit.eventText.Aggregate("", (s, x) => s + "|" + x)}) in game {toEmit.gameId}");
+				m_currEvent.parsingErrorList.Add($"Emitted an event with NULL pitcherId");
 			}
 		}
 
@@ -549,6 +565,7 @@ namespace Cauldron
 			// Call after UpdateOuts
 			UpdateFielding(newState);
 
+			// Call after UpdateOuts
 			UpdateBaserunning(newState);
 
 			UpdatePlayerEvents(newState);

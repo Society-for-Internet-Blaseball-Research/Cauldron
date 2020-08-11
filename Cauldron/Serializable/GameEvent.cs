@@ -114,5 +114,6 @@ namespace Cauldron
 		}
 
 		public bool parsingError { get; set; }
+		public List<string> parsingErrorList { get; set; }
 	}
 }
