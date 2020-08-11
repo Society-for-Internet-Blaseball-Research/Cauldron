@@ -23,7 +23,8 @@ namespace CauldronVisualizer
 		public event PropertyChangedEventHandler PropertyChanged;
 		public void OnPropertyChanged(string propName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 
-		private JsonSerializerOptions m_serializerOptions;
+		private static JsonSerializerOptions s_diskOptions;
+		private static JsonSerializerOptions s_displayOptions;
 
 		public ObservableCollectionEx<GameUpdateVm> GameUpdates { get; set; }
 
@@ -94,15 +95,6 @@ namespace CauldronVisualizer
 		}
 		private bool m_loadSaveEnabled;
 
-		#region Filtering
-		public ICommand FilterCommand => m_filterCommand;
-		DelegateCommand m_filterCommand;
-
-		public ICommand FilterToGameCommand => m_filterToGameCommand;
-		DelegateCommand m_filterToGameCommand;
-
-		public ICommand ClearFilterCommand => m_clearFilterCommand;
-		DelegateCommand m_clearFilterCommand;
 		public ICommand LoadUpdatesCommand => m_loadUpdatesCommand;
 		DelegateCommand m_loadUpdatesCommand;
 
@@ -118,6 +110,17 @@ namespace CauldronVisualizer
 		public ICommand ConvertCommand => m_convertCommand;
 		DelegateCommand m_convertCommand;
 
+		public ICommand ShowJsonCommand => m_showJsonCommand;
+		DelegateCommand m_showJsonCommand;
+		#region Filtering
+		public ICommand FilterCommand => m_filterCommand;
+		DelegateCommand m_filterCommand;
+
+		public ICommand FilterToGameCommand => m_filterToGameCommand;
+		DelegateCommand m_filterToGameCommand;
+
+		public ICommand ClearFilterCommand => m_clearFilterCommand;
+		DelegateCommand m_clearFilterCommand;
 		public string FilterText
 		{
 			get { return m_filterText; }
@@ -151,15 +154,24 @@ namespace CauldronVisualizer
 
 		Dictionary<string, Team> m_teamLookup;
 
+		static VisualizerVm()
+		{
+			s_diskOptions = new JsonSerializerOptions();
+			s_diskOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+
+			s_displayOptions = new JsonSerializerOptions();
+			s_displayOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+			s_displayOptions.WriteIndented = true;
+		}
+
 		public VisualizerVm()
 		{
-			m_serializerOptions = new JsonSerializerOptions();
-			m_serializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 
 			GameUpdates = new ObservableCollectionEx<GameUpdateVm>();
 			GameEvents = new ObservableCollectionEx<GameEventVm>();
 
 			m_convertCommand = new DelegateCommand(ConvertUpdates, CanConvertUpdates);
+			m_showJsonCommand = new DelegateCommand(ShowJson);
 
 			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
 			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
@@ -178,6 +190,15 @@ namespace CauldronVisualizer
 			LoadSaveEnabled = true;
 			EventsDisabled = false;
 			UpdatesDisabled = false;
+		}
+
+		private void ShowJson(object obj)
+		{
+			if(obj != null)
+			{
+				string json = JsonSerializer.Serialize(obj, s_displayOptions);
+				MessageBox.Show(json, "Behind the Curtain");
+			}
 		}
 
 		private bool CanConvertUpdates(object obj)
@@ -224,7 +245,7 @@ namespace CauldronVisualizer
 
 			string teamInfo = File.ReadAllText("Data/teams.json");
 
-			List<Team> allTeams = JsonSerializer.Deserialize<List<Team>>(teamInfo, m_serializerOptions);
+			List<Team> allTeams = JsonSerializer.Deserialize<List<Team>>(teamInfo, s_diskOptions);
 
 			foreach(var team in allTeams)
 			{
@@ -322,7 +343,7 @@ namespace CauldronVisualizer
 					while (!sr.EndOfStream)
 					{
 						string obj = await sr.ReadLineAsync();
-						Update u = JsonSerializer.Deserialize<Update>(obj, m_serializerOptions);
+						Update u = JsonSerializer.Deserialize<Update>(obj, s_diskOptions);
 						foreach (var s in u.Schedule)
 						{
 							s.timestamp = u.clientMeta.timestamp;
@@ -375,7 +396,7 @@ namespace CauldronVisualizer
 					u.clientMeta = new ClientMeta();
 					u.clientMeta.timestamp = obj.Update.timestamp;
 
-					string json = JsonSerializer.Serialize(u, m_serializerOptions);
+					string json = JsonSerializer.Serialize(u, s_diskOptions);
 					sw.WriteLine(json);
 				}
 			}
@@ -394,7 +415,7 @@ namespace CauldronVisualizer
 					while (!sr.EndOfStream)
 					{
 						string obj = await sr.ReadLineAsync();
-						GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, m_serializerOptions);
+						GameEvent e = JsonSerializer.Deserialize<GameEvent>(obj, s_diskOptions);
 						GameEvents.Add(new GameEventVm(e, m_teamLookup));
 						if(m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
 						{
@@ -434,7 +455,7 @@ namespace CauldronVisualizer
 			{
 				foreach (GameEventVm obj in m_eventsCv)
 				{
-					string json = JsonSerializer.Serialize(obj.Event, m_serializerOptions);
+					string json = JsonSerializer.Serialize(obj.Event, s_diskOptions);
 					sw.WriteLine(json);
 				}
 			}

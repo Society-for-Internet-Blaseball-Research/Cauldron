@@ -338,6 +338,7 @@ namespace Cauldron
 			// dig back into the m_oldState to find them
 			m_currEvent.baseRunners = new List<GameEventBaseRunner>();
 
+			// Handle runners present in the new state and probably the old state too
 			for(int i=0; i < newState.baseRunners.Count; i++)
 			{
 				string runnerId = newState.baseRunners[i];
@@ -345,6 +346,7 @@ namespace Cauldron
 
 				GameEventBaseRunner runner = new GameEventBaseRunner();
 				runner.runnerId = runnerId;
+				// TODO: this ain't right, the current pitcher isn't responsible for all runners
 				runner.responsiblePitcherId = GetPitcherId(newState);
 				// We number home = 0, first = 1, second = 2, third = 3
 				// Game updates have first = 0, second = 1, third = 2
@@ -375,6 +377,37 @@ namespace Cauldron
 				}
 				
 				m_currEvent.baseRunners.Add(runner);
+			}
+			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
+			for(int i=0; i < m_oldState.baseRunners.Count; i++)
+			{
+				string runnerId = m_oldState.baseRunners[i];
+				int baseIndex = m_oldState.basesOccupied[i];
+
+				bool found = false;
+				for(int j=0; j < newState.baseRunners.Count; j++)
+				{
+					if(newState.baseRunners[j] == runnerId)
+					{
+						found = true;
+					}
+				}
+				// If we didn't find a runner from last state, and the outs are the same, they must have scored
+				// newState might already have jumped to the next inning, so check old
+				int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
+				int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
+				if(!found && (newState.halfInningOuts == m_oldState.halfInningOuts || newScore > oldScore))
+				{
+					GameEventBaseRunner runner = new GameEventBaseRunner();
+					runner.runnerId = runnerId;
+					runner.baseBeforePlay = baseIndex + 1;
+					runner.baseAfterPlay = 4;
+					if (newState.lastUpdate.Contains("steals"))
+					{
+						runner.wasBaseStolen = true;
+					}
+					m_currEvent.baseRunners.Add(runner);
+				}
 			}
 		}
 

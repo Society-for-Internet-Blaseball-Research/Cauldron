@@ -162,6 +162,7 @@
             <ListBox.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Filter to this game" Command="{Binding FilterToGameCommand}" CommandParameter="{Binding SelectedGameUpdate.Update._id}"/>
+                    <MenuItem Header="View JSON" Command="{Binding ShowJsonCommand}" CommandParameter="{Binding SelectedGameUpdate.Update}"/>
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>
@@ -181,6 +182,7 @@
             <ListBox.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Filter to this game" Command="{Binding FilterToGameCommand}" CommandParameter="{Binding SelectedGameEvent.Event.gameId}"/>
+                    <MenuItem Header="View JSON" Command="{Binding ShowJsonCommand}" CommandParameter="{Binding SelectedGameEvent.Event}"/>
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>
