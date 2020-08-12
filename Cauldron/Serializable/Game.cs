@@ -101,7 +101,7 @@ namespace Cauldron
 			get
 			{
 				// Pitchers are currently never empty
-				return topOfInning ? awayPitcher : homePitcher;
+				return topOfInning ? homePitcher : awayPitcher;
 			}
 		}
 

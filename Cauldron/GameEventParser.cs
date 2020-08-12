@@ -438,6 +438,9 @@ namespace Cauldron
 		/// </summary>
 		private void UpdateLineupInfo(Game newState)
 		{
+			// Always attribute the event to the last pitcher involved
+			m_currEvent.pitcherId = newState.PitcherId;
+
 			// TODO currEvent.isLeadoff
 
 			// Game updates have a batter count per team, so the lineup position is that % 9
