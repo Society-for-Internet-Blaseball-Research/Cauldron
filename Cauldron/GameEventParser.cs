@@ -22,6 +22,8 @@ namespace Cauldron
 		int m_batterCount = 0;
 		// Map of pitcher IDs indexed by batter ID; used in attributing baserunners to pitchers
 		Dictionary<string, string> m_responsiblePitchers;
+		// Keep of track of whether we've had a valid batter for this inning
+		HashSet<string> m_startedInnings;
 
 		// Properties for metrics
 		public int Discards => m_discards;
@@ -50,10 +52,28 @@ namespace Cauldron
 			m_errors = 0;
 			m_gameId = initState._id;
 			m_responsiblePitchers = new Dictionary<string, string>();
+			m_startedInnings = new HashSet<string>();
 
 			m_currEvent = CreateNewGameEvent(initState, timeStamp);
 			m_currEvent.eventText.Add(initState.lastUpdate);
 		}
+
+		#region Inning tracking
+		private string MakeInningKey(Game newState)
+		{
+			return newState.topOfInning ? $"T{newState.inning}" : $"B{newState.inning}";
+		}
+
+		private bool CanStartInning(Game newState)
+		{
+			return !m_startedInnings.Contains(MakeInningKey(newState)) && newState.BatterId != null;
+		}
+
+		private void StartInning(Game newState)
+		{
+			m_startedInnings.Add(MakeInningKey(newState));
+		}
+		#endregion
 
 		// If the Id and name are valid, store them in our map
 		private void CapturePlayerId(string id, string name)
@@ -441,7 +461,12 @@ namespace Cauldron
 			// Always attribute the event to the last pitcher involved
 			m_currEvent.pitcherId = newState.PitcherId;
 
-			// TODO currEvent.isLeadoff
+			// Track first batter in each inning
+			if(CanStartInning(newState))
+			{
+				StartInning(newState);
+				m_currEvent.isLeadoff = true;
+			}
 
 			// Game updates have a batter count per team, so the lineup position is that % 9
 			if (newState.topOfInning)
