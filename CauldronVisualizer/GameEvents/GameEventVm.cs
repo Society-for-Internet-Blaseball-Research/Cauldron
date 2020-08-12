@@ -70,6 +70,22 @@ namespace CauldronVisualizer
 				return new SolidColorBrush(color);
 			}
 		}
+		
+		public bool HasIncineration
+		{
+			get
+			{
+				return m_event.playerEvents.Count(x => x.eventType == PlayerEventType.INCINERATION) > 0;
+			}
+		}
+
+		public bool HasPeanut
+		{
+			get
+			{
+				return m_event.playerEvents.Count(x => x.eventType == PlayerEventType.PEANUT_GOOD || x.eventType == PlayerEventType.PEANUT_BAD) > 0;
+			}
+		}
 
 		private Dictionary<string, Team> m_teamLookup;
 

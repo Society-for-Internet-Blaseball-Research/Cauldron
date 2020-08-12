@@ -78,6 +78,52 @@ namespace Cauldron
 				(awayTeamName == other.awayTeamName) &&
 				(_id == other._id));
 		}
+
+		// Helpers
+
+		// Helper - get the current batter ID
+		[JsonIgnore]
+		public string BatterId
+		{
+			get
+			{
+				// Batters can sometimes be empty
+				string batter = topOfInning ? awayBatter : homeBatter;
+				return batter == string.Empty ? null : batter;
+			}
+		}
+
+		// 
+		// Helper - get the current pitcher ID
+		[JsonIgnore]
+		public string PitcherId
+		{
+			get
+			{
+				// Pitchers are currently never empty
+				return topOfInning ? awayPitcher : homePitcher;
+			}
+		}
+
+		// Helper - get the team ID of the batting team
+		[JsonIgnore]
+		public string BatterTeamId
+		{
+			get
+			{
+				return topOfInning ? awayTeam : homeTeam;
+			}
+		}
+
+		// Helper - get the team ID of the pitching team
+		[JsonIgnore]
+		public string PitcherTeamId
+		{
+			get
+			{
+				return topOfInning ? homeTeam : awayTeam;
+			}
+		}
 	}
 
 }

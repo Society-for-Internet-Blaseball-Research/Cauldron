@@ -20,6 +20,8 @@ namespace Cauldron
 		// State tracking for stats not tracked inherently in the state updates
 		int m_eventIndex = 0;
 		int m_batterCount = 0;
+		// Map of pitcher IDs indexed by batter ID; used in attributing baserunners to pitchers
+		Dictionary<string, string> m_responsiblePitchers;
 
 		// Properties for metrics
 		public int Discards => m_discards;
@@ -31,8 +33,10 @@ namespace Cauldron
 		public string GameId => m_gameId;
 		string m_gameId;
 
+		// Event currently being appended to
 		GameEvent m_currEvent;
 
+		// Map of player IDs indexed by name; used in looking up players who were incinerated or ate a peanut
 		Dictionary<string, string> m_playerNameToId;
 		
 		public void StartNewGame(Game initState, DateTime timeStamp)
@@ -45,6 +49,7 @@ namespace Cauldron
 			m_processed = 0;
 			m_errors = 0;
 			m_gameId = initState._id;
+			m_responsiblePitchers = new Dictionary<string, string>();
 
 			m_currEvent = CreateNewGameEvent(initState, timeStamp);
 			m_currEvent.eventText.Add(initState.lastUpdate);
@@ -68,27 +73,7 @@ namespace Cauldron
 			CapturePlayerId(state.homePitcher, state.homePitcherName);
 		}
 
-		private string GetBatterId(Game state)
-		{
-			// Batters can sometimes be empty
-			string batter = state.topOfInning ? state.awayBatter : state.homeBatter;
-			return batter == string.Empty ? null : batter;
-		}
 
-		private string GetPitcherId(Game state)
-		{
-			return state.topOfInning ? state.awayPitcher : state.homePitcher;
-		}
-
-		private string GetBatterTeamId(Game state)
-		{
-			return state.topOfInning ? state.awayTeam : state.homeTeam;
-		}
-
-		private string GetPitcherTeamId(Game state)
-		{
-			return state.topOfInning ? state.homeTeam : state.awayTeam;
-		}
 
 		private GameEvent CreateNewGameEvent(Game newState, DateTime timeStamp)
 		{
@@ -120,10 +105,10 @@ namespace Cauldron
 			currEvent.errorsOnPlay = 0;
 			currEvent.isSacrificeFly = false; // I think we can't tell this
 
-			currEvent.batterId = GetBatterId(newState);
-			currEvent.batterTeamId = GetBatterTeamId(newState);
-			currEvent.pitcherId = GetPitcherId(newState);
-			currEvent.pitcherTeamId = GetPitcherTeamId(newState);
+			currEvent.batterId = newState.BatterId;
+			currEvent.batterTeamId = newState.BatterTeamId;
+			currEvent.pitcherId = newState.PitcherId;
+			currEvent.pitcherTeamId = newState.PitcherTeamId;
 
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
@@ -326,6 +311,7 @@ namespace Cauldron
 		/// </summary>
 		private void UpdateBaserunning(Game newState)
 		{
+
 			// Steals
 			if (newState.lastUpdate.Contains("steals"))
 			{
@@ -349,8 +335,16 @@ namespace Cauldron
 
 				GameEventBaseRunner runner = new GameEventBaseRunner();
 				runner.runnerId = runnerId;
-				// TODO: this ain't right, the current pitcher isn't responsible for all runners
-				runner.responsiblePitcherId = GetPitcherId(newState);
+
+				// Add a new entry for this new baserunner
+				if(!m_responsiblePitchers.ContainsKey(runnerId))
+				{
+					// Pitcher from the previous state must be responsible for this new baserunner
+					m_responsiblePitchers[runnerId] = m_oldState.PitcherId;
+				}
+
+				runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+
 				// We number home = 0, first = 1, second = 2, third = 3
 				// Game updates have first = 0, second = 1, third = 2
 				runner.baseAfterPlay = baseIndex + 1;
@@ -381,6 +375,7 @@ namespace Cauldron
 				
 				m_currEvent.baseRunners.Add(runner);
 			}
+
 			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
 			for(int i=0; i < m_oldState.baseRunners.Count; i++)
 			{
@@ -403,8 +398,7 @@ namespace Cauldron
 				{
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
-					// TODO: this ain't right, the current pitcher isn't responsible for all runners
-					runner.responsiblePitcherId = GetPitcherId(m_oldState);
+					runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
 					if (newState.lastUpdate.Contains("steals"))
@@ -428,6 +422,15 @@ namespace Cauldron
 					m_currEvent.parsingErrorList.Add($"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
 				}
 			}
+
+			// Last thing - if we just changed innings, clear the responsible pitcher list
+			// Note that we do this AFTER attributing baserunners who may have just done something on this play
+			// and whose pitcher was from this old inning
+			if (newState.inning != m_oldState.inning)
+			{
+				m_responsiblePitchers.Clear();
+			}
+
 		}
 
 		/// <summary>
@@ -459,7 +462,7 @@ namespace Cauldron
 		}
 
 		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ \w+)! Replaced by (\w+ \w+)");
-		private static Regex peanutRegex = new Regex(@".er (\w+ \w+) swallowed.*had a (\w) reaction!");
+		private static Regex peanutRegex = new Regex(@".*er (\w+ \w+) swallowed.*had an? (\w+) reaction!");
 
 		private void UpdatePlayerEvents(Game newState)
 		{
@@ -551,7 +554,7 @@ namespace Cauldron
 			// If we haven't found the batter for this event yet, try again
 			if (m_currEvent.batterId == null)
 			{
-				m_currEvent.batterId = GetBatterId(newState);
+				m_currEvent.batterId = newState.BatterId;
 			}
 
 			// Presume this event will be last; steals can set this to false later

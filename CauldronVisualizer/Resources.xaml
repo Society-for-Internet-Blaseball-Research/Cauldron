@@ -5,7 +5,8 @@
                     xmlns:ge="clr-namespace:CauldronVisualizer.GameEvents"
                     >
 
-    
+    <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
     <SolidColorBrush x:Key="Background" Color="#000000"/>
     <SolidColorBrush x:Key="Foreground" Color="#EEEEEE"/>
     <SolidColorBrush x:Key="Bright" Color="#BBBBBB"/>

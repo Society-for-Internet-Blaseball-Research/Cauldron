@@ -119,6 +119,27 @@
                 </TextBlock.Text>
             </TextBlock>
         </Grid>
+        <StackPanel
+            Orientation="Vertical"
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="0 10 0 0">
+            <TextBlock
+                FontFamily="Segoe UI Emoji"
+                Text="&#x0001F525;"
+                Foreground="OrangeRed"
+                Visibility="{Binding HasIncineration, Converter={StaticResource BoolToVisibilityConverter}}"
+                >
+            </TextBlock>
+            <TextBlock
+                FontFamily="Segoe UI Emoji"
+                Text="&#x0001F95C;"
+                Foreground="#CC9900"
+                Visibility="{Binding HasPeanut, Converter={StaticResource BoolToVisibilityConverter}}"
+                >
+            </TextBlock>
+        </StackPanel>
+
         <ItemsControl
             Margin="20 10 0 10"
             Grid.Row="1"
