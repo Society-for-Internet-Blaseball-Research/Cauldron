@@ -106,6 +106,7 @@ namespace Cauldron
 			currEvent.firstPerceivedAt = timeStamp;
 
 			currEvent.gameId = newState._id;
+			currEvent.season = newState.season;
 			currEvent.eventIndex = m_eventIndex;
 			currEvent.batterCount = m_batterCount;
 			currEvent.inning = newState.inning;

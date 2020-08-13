@@ -108,6 +108,8 @@ namespace Cauldron
 		public DateTime firstPerceivedAt { get; set; }
 		[JsonConverter(typeof(TimestampConverter))]
 		public DateTime lastPerceivedAt { get; set; }
+
+		public int season { get; set; }
 		public override string ToString()
 		{
 			return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";
