@@ -589,6 +589,11 @@ namespace Cauldron
 		/// <returns></returns>
 		public void ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
+			if(IsGameComplete)
+			{
+				m_discards++;
+				return;
+			}
 			if(newState.Equals(m_oldState))
 			{
 				//Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
