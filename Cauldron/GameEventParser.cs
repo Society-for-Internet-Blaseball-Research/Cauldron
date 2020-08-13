@@ -421,7 +421,15 @@ namespace Cauldron
 				{
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
-					runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+					if(m_responsiblePitchers.ContainsKey(runnerId))
+					{
+						runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+					}
+					else
+					{
+						m_currEvent.parsingError = true;
+						m_currEvent.parsingErrorList.Add($"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+					}
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
 					if (newState.lastUpdate.Contains("steals"))
