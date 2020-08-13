@@ -427,6 +427,7 @@ namespace Cauldron
 					}
 					else
 					{
+						runner.responsiblePitcherId = "";
 						m_currEvent.parsingError = true;
 						m_currEvent.parsingErrorList.Add($"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
 					}
