@@ -245,18 +245,23 @@ namespace CauldronVisualizer
 			return m_updatesCv.Cast<object>().Count() > 0;
 		}
 
+		private void GameComplete(object sender, GameCompleteEventArgs args)
+		{
+			foreach(GameEvent newEvent in args.GameEvents)
+			{
+				GameEvents.Add(new GameEventVm(newEvent, m_teamLookup));
+			}
+		}
+
 		private async Task AsyncConvertUpdates()
 		{
 			Processor processor = new Processor();
+			processor.GameComplete += GameComplete;
 			GameEvents.Clear();
 			GameEvents.SupressNotification = true;
 			foreach (GameUpdateVm vm in m_updatesCv)
 			{
-				GameEvent newEvent = processor.ProcessGame(vm.Update, vm.Update.timestamp);
-				if (newEvent != null)
-				{
-					GameEvents.Add(new GameEventVm(newEvent, m_teamLookup));
-				}
+				processor.ProcessGameObject(vm.Update, vm.Update.timestamp);
 			}
 			GameEvents.SupressNotification = false;
 		}

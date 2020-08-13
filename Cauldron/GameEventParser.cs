@@ -7,12 +7,23 @@ using System.Threading.Tasks;
 
 namespace Cauldron
 {
+
+	public class GameCompleteEventArgs
+	{
+		public GameCompleteEventArgs(IEnumerable<GameEvent> gameEvents)
+		{
+			GameEvents = gameEvents;
+		}
+
+		public IEnumerable<GameEvent> GameEvents;
+	}
+
 	/// <summary>
 	/// Basic parser that takes Game json updates and emits GameEvent json objects
 	/// PLEASE NOTE this is probably wrong; I'm currently emitting one GameEvent per game update but
 	/// ultimately we want a Retrosheet-style condensed description of the whole "play" as a single GameEvent
 	/// </summary>
-	class GameEventParser
+	public class GameEventParser
 	{
 		// Last state we saw, for comparison
 		Game m_oldState;
@@ -40,7 +51,17 @@ namespace Cauldron
 
 		// Map of player IDs indexed by name; used in looking up players who were incinerated or ate a peanut
 		Dictionary<string, string> m_playerNameToId;
-		
+
+		public event EventHandler<GameCompleteEventArgs> GameComplete;
+		public bool IsGameComplete
+		{
+			get; set;
+		}
+		private bool m_sentGameComplete;
+
+		public IEnumerable<GameEvent> GameEvents => m_gameEvents;
+		private List<GameEvent> m_gameEvents;
+
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_playerNameToId = new Dictionary<string, string>();
@@ -56,6 +77,10 @@ namespace Cauldron
 
 			m_currEvent = CreateNewGameEvent(initState, timeStamp);
 			m_currEvent.eventText.Add(initState.lastUpdate);
+
+			m_gameEvents = new List<GameEvent>();
+			IsGameComplete = false;
+			m_sentGameComplete = false;
 		}
 
 		#region Inning tracking
@@ -92,8 +117,6 @@ namespace Cauldron
 			CapturePlayerId(state.homeBatter, state.homeBatterName);
 			CapturePlayerId(state.homePitcher, state.homePitcherName);
 		}
-
-
 
 		private GameEvent CreateNewGameEvent(Game newState, DateTime timeStamp)
 		{
@@ -564,19 +587,19 @@ namespace Cauldron
 		/// <param name="newState"></param>
 		/// <param name="timeStamp"></param>
 		/// <returns></returns>
-		public GameEvent ParseGameUpdate(Game newState, DateTime timeStamp)
+		public void ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
 			if(newState.Equals(m_oldState))
 			{
 				//Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
 				m_discards++;
-				return null;
+				return;
 			}
 			else if(newState._id != m_oldState._id)
 			{
 				Console.WriteLine("ERROR: GameEventParser got an update for the wrong game!");
 				m_discards++;
-				return null;
+				return;
 			}
 			else
 			{
@@ -624,6 +647,11 @@ namespace Cauldron
 
 			// Unsure if this is enough
 			m_currEvent.isLastGameEvent = newState.gameComplete;
+			IsGameComplete = newState.gameComplete;
+			if(IsGameComplete && !m_sentGameComplete)
+			{
+				GameComplete?.Invoke(this, new GameCompleteEventArgs(m_gameEvents));
+			}
 
 			// Store original update text for reference
 			m_currEvent.eventText.Add(newState.lastUpdate);
@@ -650,11 +678,12 @@ namespace Cauldron
 				}
 
 				ErrorCheckBeforeEmit(emitted);
-				return emitted;
+				m_gameEvents.Add(emitted);
 			}
-			else
+
+			if(IsGameComplete)
 			{
-				return null;
+				// Fire event
 			}
 		}
 	}
