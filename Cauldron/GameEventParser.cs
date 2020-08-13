@@ -626,6 +626,7 @@ namespace Cauldron
 			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk || m_currEvent.isLastGameEvent)
 			{
 				GameEvent emitted = m_currEvent;
+				m_eventIndex++;
 
 				if (m_currEvent.isSteal || m_currEvent.eventType == GameEventType.CAUGHT_STEALING)
 				{
@@ -639,7 +640,6 @@ namespace Cauldron
 				}
 
 				ErrorCheckBeforeEmit(emitted);
-				m_eventIndex++;
 				return emitted;
 			}
 			else
