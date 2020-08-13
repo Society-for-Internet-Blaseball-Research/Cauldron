@@ -11,10 +11,8 @@ Run from the command line:
 
 ## Unimplemented Fields
 
-* `isLeadoff`
 * `battedBallType`
 
 ## Partially implemented fields
 
-* `eventType`
 * `lineupPosition` is getting -1s sometimes
