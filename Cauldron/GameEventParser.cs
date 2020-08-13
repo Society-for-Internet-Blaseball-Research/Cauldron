@@ -377,20 +377,22 @@ namespace Cauldron
 					{
 						runner.baseBeforePlay = m_oldState.basesOccupied[j] + 1;
 						found = true;
+						if(runner.baseBeforePlay != runner.baseAfterPlay)
+						{
+							if(newState.lastUpdate.Contains("steals"))
+							{
+								runner.wasBaseStolen = true;
+							}
+							if(newState.lastUpdate.Contains("caught"))
+							{
+								runner.wasCaughtStealing = true;
+							}
+						}
 					}
 				}
 				if(!found)
 				{
 					runner.baseBeforePlay = 0;
-				}
-
-				if(newState.lastUpdate.Contains("steals"))
-				{
-					runner.wasBaseStolen = true;
-				}
-				if(newState.lastUpdate.Contains("caught"))
-				{
-					runner.wasCaughtStealing = true;
 				}
 				
 				m_currEvent.baseRunners.Add(runner);
@@ -645,7 +647,5 @@ namespace Cauldron
 				return null;
 			}
 		}
-
-
 	}
 }
