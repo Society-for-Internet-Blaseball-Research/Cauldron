@@ -361,6 +361,7 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
 			{
 				m_currEvent.pitchesList.Add('X');
+				m_currEvent.battedBallType = BattedBallType.UNKNOWN;
 			}
 
 			// Extremely basic single/double/triple/HR detection
@@ -387,9 +388,17 @@ namespace Cauldron
 				m_currEvent.basesHit = 4;
 				m_currEvent.batterBaseAfterPlay = 4;
 				m_currEvent.eventType = GameEventType.HOME_RUN;
+				m_currEvent.battedBallType = BattedBallType.FLY;
 			}
 
-			// TODO currEvent.battedBallType
+			if(newState.lastUpdate.Contains("ground"))
+			{
+				m_currEvent.battedBallType = BattedBallType.GROUNDER;
+			}
+			if(newState.lastUpdate.Contains("flyout"))
+			{
+				m_currEvent.battedBallType = BattedBallType.FLY;
+			}
 		}
 
 		/// <summary>
@@ -498,7 +507,7 @@ namespace Cauldron
 				{
 					runner.baseBeforePlay = 0;
 				}
-				
+
 				m_currEvent.baseRunners.Add(runner);
 			}
 
@@ -554,6 +563,17 @@ namespace Cauldron
 					// What the hell else could have happened?
 					AddParsingError($"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
 				}
+			}
+
+			// Add the homering batter as a baserunner
+			if (m_currEvent.eventType == GameEventType.HOME_RUN)
+			{
+				GameEventBaseRunner runner = new GameEventBaseRunner();
+				runner.runnerId = newState.BatterId;
+				runner.responsiblePitcherId = newState.PitcherId;
+				runner.baseBeforePlay = 0;
+				runner.baseAfterPlay = 4;
+				m_currEvent.baseRunners.Add(runner);
 			}
 
 			// Last thing - if we just changed innings, clear the responsible pitcher list
