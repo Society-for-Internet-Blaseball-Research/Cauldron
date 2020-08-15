@@ -112,10 +112,19 @@ namespace Cauldron
             return sameTeam || diffTeam;
         }
 
+		private bool IsEndOfCurrentAtBat(Game oldState, Game newState) {
+            // Assumes no gaps
+            return ((newState.atBatBalls <= oldState.atBatBalls) && 
+					(newState.atBatStrikes <= oldState.atBatStrikes) &&
+					(newState.atBatStrikes == 0 && newState.atBatBalls == 0));
+		}
+
 		private bool IsSameAtBat(Game oldState, Game newState)
 		{
 			return ((oldState.inning == newState.inning) &&
 					(oldState.topOfInning == newState.topOfInning) &&
+                    (oldState.atBatBalls <= newState.atBatBalls) &&
+                    (oldState.atBatStrikes <= newState.atBatStrikes) &&
 					(oldState.homeTeamBatterCount == newState.homeTeamBatterCount) &&
 					(oldState.awayTeamBatterCount == newState.awayTeamBatterCount));
 		}
@@ -204,7 +213,7 @@ namespace Cauldron
                 m_currEvent.totalBalls = newState.atBatBalls;
                 m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
-			else if(IsStartOfNextAtBat(m_oldState, newState))
+			else if(IsEndOfCurrentAtBat(m_oldState, newState))
 			{
                 // If a batter strikes out we never get an update with 3 strikes on it
                 // so check the play text
@@ -222,10 +231,15 @@ namespace Cauldron
 					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
                 }
 			}
+			else if(IsStartOfNextAtBat(m_oldState, newState))
+			{
+				// Nothing to see here, just changing batters
+			}
 			// This else case should return so we can assume we are only covering one event below
 			else
 			{
 				AddParsingError($"Event jumped to processing a different batter unexpectedly");
+				return;
 			}
 
 			// Oops, we hit a gap, lets see if we can fill it in
@@ -287,7 +301,7 @@ namespace Cauldron
 			else if (newBalls == 1)
 			{
 				m_currEvent.pitchesList.Add('B');
-				if (!newState.lastUpdate.Contains("Ball."))
+				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("walk.")))
 				{
                     AddFixedError($"A we missed a single ball, but we fixed it");
 				}
