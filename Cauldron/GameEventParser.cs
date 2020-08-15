@@ -460,8 +460,8 @@ namespace Cauldron
 				m_currEvent.isLastEventForPlateAppearance = false;
 			}
 
-			// If this play is known to be ending the inning
-			if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay >= 3)
+			// If this play is known to be ending the inning or game
+			if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay >= 3 || newState.gameComplete)
 			{
 				// Baserunners should be exactly what we had in the last update
 				return;
@@ -524,11 +524,22 @@ namespace Cauldron
 				m_currEvent.baseRunners.Add(runner);
 			}
 
-			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
-			for(int i=0; i < m_oldState.baseRunners.Count; i++)
+			// Translate old baserunners into a more easily looped form
+			Dictionary<int, string> oldBases = new Dictionary<int, string>();
+			for (int i = 0; i < m_oldState.baseRunners.Count; i++)
 			{
-				string runnerId = m_oldState.baseRunners[i];
-				int baseIndex = m_oldState.basesOccupied[i];
+				oldBases[m_oldState.basesOccupied[i]] = m_oldState.baseRunners[i];
+			}
+
+			int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
+			int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
+			int scoreDiff = newScore - oldScore;
+
+			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
+			foreach (var kvp in oldBases.OrderByDescending(x => x.Key))
+			{
+				string runnerId = kvp.Value;
+				int baseIndex = kvp.Key;
 
 				bool found = false;
 				for(int j=0; j < newState.baseRunners.Count; j++)
@@ -538,12 +549,12 @@ namespace Cauldron
 						found = true;
 					}
 				}
-				// If we didn't find a runner from last state, and the outs are the same, they must have scored
-				// newState might already have jumped to the next inning, so check old
-				int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
-				int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
-				if (!found && (m_currEvent.outsOnPlay == 0 || newScore > oldScore))
+
+				// If this old runner was not found and we have runs not attributed yet
+				if (!found && scoreDiff > 0)
 				{
+					// One run accounted for
+					scoreDiff--;
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
 					if(m_responsiblePitchers.ContainsKey(runnerId))
@@ -555,6 +566,7 @@ namespace Cauldron
 						runner.responsiblePitcherId = "";
 						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
 					}
+
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
 					if (newState.lastUpdate.Contains("steals"))
@@ -571,8 +583,28 @@ namespace Cauldron
 				{
 					// Fine, he was found
 				}
+				else if(m_oldState.inning >= 8 && m_oldState.halfInningOuts == 2)
+				{
+					// In the case that the game-ending out just happened, we'll get an update still in the 9th inning but with outs back at 0 and gameComplete not yet true. Sigh.
+					// For now, allow this in the 9th inning with 2 outs
+					GameEventBaseRunner runner = new GameEventBaseRunner();
+					runner.runnerId = runnerId;
+					if (m_responsiblePitchers.ContainsKey(runnerId))
+					{
+						runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+					}
+					else
+					{
+						runner.responsiblePitcherId = "";
+						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+					}
+
+					runner.baseBeforePlay = baseIndex + 1;
+					runner.baseAfterPlay = baseIndex + 1;
+					m_currEvent.baseRunners.Add(runner);
+				}
 				else
-				{ 
+				{
 					// What the hell else could have happened?
 					AddParsingError(m_currEvent, $"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
 				}
