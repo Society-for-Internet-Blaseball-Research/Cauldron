@@ -37,9 +37,26 @@
             Grid.ColumnSpan="3"
             Grid.RowSpan="2"
             >
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Event.fixedError}" Value="true">
+                            <Setter Property="Background" Value="#99333399"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
+        <Border
+            Margin="10 0 0 0"
+            HorizontalAlignment="Stretch"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
+            Grid.RowSpan="2"
+            >
             <Border.ToolTip>
-                <ItemsControl ItemsSource="{Binding Event.parsingErrorList}"
-                    >
+                <ItemsControl ItemsSource="{Binding Event.parsingErrorList}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="string">
                             <TextBlock

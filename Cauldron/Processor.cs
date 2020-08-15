@@ -202,12 +202,13 @@ namespace Cauldron
 			int discards = m_trackedGames.Values.Sum(x => x.Discards);
 			int processed = m_trackedGames.Values.Sum(x => x.Processed);
 			int errors = m_trackedGames.Values.Sum(x => x.Errors);
+			int fixes = m_trackedGames.Values.Sum(x => x.Fixes);
 			IEnumerable<string> errorGameIds = m_trackedGames.Values.Where(x => x.Errors > 0).Select(x => x.GameId);
 			Console.WriteLine($"Error Games:");
 			foreach(var game in errorGameIds)
 				Console.WriteLine(game);
 			Console.WriteLine("=========");
-			Console.WriteLine($"Lines Read: {linesRead}\nUpdates Processed: {processed}\nDuplicates Discarded: {discards}\nGames With Errors: {errorGameIds.Count()}\nErrors: {errors}\nGames Found: {m_trackedGames.Keys.Count}");
+			Console.WriteLine($"Lines Read: {linesRead}\nUpdates Processed: {processed}\nDuplicates Discarded: {discards}\nGames With Errors: {errorGameIds.Count()}\nErrors: {errors}\nFixed: {fixes}\nGames Found: {m_trackedGames.Keys.Count}");
 
 		}
 	}
