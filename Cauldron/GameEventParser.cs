@@ -78,17 +78,24 @@ namespace Cauldron
 		}
 		#endregion
 
-		private void AddParsingError(string message) {
-			m_currEvent.parsingError = true;
-			m_currEvent.parsingErrorList.Add(message);
+		private void AddParsingError(GameEvent e, string message) 
+		{
+			if (e != null)
+			{
+				e.parsingError = true;
+				e.parsingErrorList.Add(message);
+			}
 			m_errors++;
 			Console.WriteLine(message);
 		}
 
-		private void AddFixedError(string message)
+		private void AddFixedError(GameEvent e, string message)
 		{
-			m_currEvent.fixedError = true;
-			m_currEvent.fixedErrorList.Add(message);
+			if (e != null)
+			{
+				e.fixedError = true;
+				e.fixedErrorList.Add(message);
+			}
 			m_fixes++;
 		}
 	
@@ -239,7 +246,7 @@ namespace Cauldron
 			// This else case should return so we can assume we are only covering one event below
 			else
 			{
-				AddParsingError($"Event jumped to processing a different batter unexpectedly");
+				AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
 				return;
 			}
 
@@ -247,7 +254,7 @@ namespace Cauldron
 			if(newStrikes + newBalls > 1)
 			{
 				// Error: We skipped *something*, we should log it
-				AddFixedError($"A single update had more than one pitch, but we fixed it");
+				AddFixedError(m_currEvent, $"A single update had more than one pitch, but we fixed it");
 				// We can know for sure the state of the last strike.
 				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
 				{
@@ -296,7 +303,7 @@ namespace Cauldron
 				else
 				{
 					m_currEvent.pitchesList.Add('K');
-					AddFixedError($"A we missed a single strike, but we fixed it");
+					AddFixedError(m_currEvent, $"We missed a single strike, but we fixed it");
 				}
 			} 
 			else if (newBalls == 1)
@@ -304,7 +311,7 @@ namespace Cauldron
 				m_currEvent.pitchesList.Add('B');
 				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("walk.")))
 				{
-					AddFixedError($"A we missed a single ball, but we fixed it");
+					AddFixedError(m_currEvent, $"We missed a single ball, but we fixed it");
 				}
 			}
 
@@ -453,12 +460,18 @@ namespace Cauldron
 				m_currEvent.isLastEventForPlateAppearance = false;
 			}
 
-			// Clear to a new list every time we parse an update
-			// Since runners can only move in cases where we emit, the last state should be correct
-			// TODO: when the 3rd out happens, newState will not have any runners
-			// If we want to show the runners as still stranded in the 3rd out event, we'll have to
-			// dig back into the m_oldState to find them
-			m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+			// If this play is known to be ending the inning
+			if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay >= 3)
+			{
+				// Baserunners should be exactly what we had in the last update
+				return;
+			}
+			else
+			{
+				// Clear to a new list every time we parse an update
+				// Since runners can only move in cases where we emit, the last state should be correct
+				m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+			}
 
 			// Handle runners present in the new state and probably the old state too
 			for(int i=0; i < newState.baseRunners.Count; i++)
@@ -540,7 +553,7 @@ namespace Cauldron
 					else
 					{
 						runner.responsiblePitcherId = "";
-						AddParsingError($"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
 					}
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
@@ -561,7 +574,7 @@ namespace Cauldron
 				else
 				{ 
 					// What the hell else could have happened?
-					AddParsingError($"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
+					AddParsingError(m_currEvent, $"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
 				}
 			}
 
@@ -667,11 +680,15 @@ namespace Cauldron
 		{
 			if(toEmit.batterId == null)
 			{
-				AddParsingError($"Emitted an event with NULL batterId");
+				AddParsingError(toEmit, $"Emitted an event with NULL batterId");
 			}
 			if (toEmit.pitcherId == null)
 			{
-				AddParsingError($"Emitted an event with NULL pitcherId");
+				AddParsingError(toEmit, $"Emitted an event with NULL pitcherId");
+			}
+			if(toEmit.eventType == GameEventType.UNKNOWN)
+			{
+				AddParsingError(toEmit, "Unknown event type");
 			}
 		}
 
