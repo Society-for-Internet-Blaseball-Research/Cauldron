@@ -117,7 +117,14 @@
 
             <TextBlock
                 Grid.Row="2"
-                Text="{Binding Event.eventType}"/>
+            >
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0}: {1}">
+                        <Binding Path="Event.lineupPosition"/>
+                        <Binding Path="Event.eventType"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
 
             <TextBlock
                 Grid.Row="2"

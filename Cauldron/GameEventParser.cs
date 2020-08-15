@@ -22,6 +22,11 @@ namespace Cauldron
 		int m_batterCount = 0;
 		// Map of pitcher IDs indexed by batter ID; used in attributing baserunners to pitchers
 		Dictionary<string, string> m_responsiblePitchers;
+
+		// Reconstruct the team linup from game data, used in identifying unknown batters
+        string[] m_homePlayerLineup;
+        string[] m_awayPlayerLineup;
+
 		// Keep of track of whether we've had a valid batter for this inning
 		HashSet<string> m_startedInnings;
 
@@ -46,6 +51,8 @@ namespace Cauldron
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_playerNameToId = new Dictionary<string, string>();
+			m_homePlayerLineup = new string[10];
+			m_awayPlayerLineup = new string[10];
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
@@ -86,7 +93,6 @@ namespace Cauldron
 				e.parsingErrorList.Add(message);
 			}
 			m_errors++;
-			Console.WriteLine(message);
 		}
 
 		private void AddFixedError(GameEvent e, string message)
@@ -106,18 +112,37 @@ namespace Cauldron
 					(newState.inning - oldState.inning <= 1));
 		}
 
-		private bool IsStartOfNextAtBat(Game oldState, Game newState)
+		private bool IsStartOfInningMessage(Game newState) {
+			return (newState.lastUpdate.Contains("Top of ") || newState.lastUpdate.Contains("Bottom of "));
+		}
+
+		private bool IsGameNearlyOver(Game oldState, Game newState)
+		{
+			return ((newState.inning >= 8) &&
+					(oldState.halfInningOuts == 2 && newState.halfInningOuts == 0) &&
+					((!newState.topOfInning) || (newState.topOfInning && newState.homeScore > newState.awayScore)));
+		}
+
+		private bool IsStartOfNextAtBat(Game oldState, Game newState, int tolerance = 0)
 		{
 			// Assumes no gaps
-			bool sameTeam = (((newState.homeTeamBatterCount - oldState.homeTeamBatterCount == 1) ^
-							 (newState.awayTeamBatterCount - oldState.awayTeamBatterCount == 1)) &&
-							 (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
+			int totalBattingGap = (newState.homeTeamBatterCount - oldState.homeTeamBatterCount) +
+                                  (newState.awayTeamBatterCount - oldState.awayTeamBatterCount);
+
+			bool sameTeam = ((totalBattingGap == 1) &&
+							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
 		
-			bool diffTeam = (IsNextHalfInning(oldState, newState) &&
-							 (newState.homeTeamBatterCount == oldState.homeTeamBatterCount) &&
-							 (newState.awayTeamBatterCount == oldState.awayTeamBatterCount) &&
-							 (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
-			return sameTeam || diffTeam;
+			bool diffTeam = ((IsNextHalfInning(oldState, newState) || IsGameNearlyOver(oldState, newState)) &&
+							 ((totalBattingGap == 0) || (totalBattingGap == -1 && newState.lastUpdate.Contains("caught"))) &&
+							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
+
+			bool startOfGame = ((newState.inning == 0 && newState.topOfInning == true )&&
+								(oldState.homeTeamBatterCount == 0) &&
+                                (oldState.awayTeamBatterCount == 0) &&
+                                (newState.homeTeamBatterCount == -1) &&
+                                (newState.awayTeamBatterCount == -1));
+
+			return sameTeam || diffTeam || startOfGame;
 		}
 
 		private bool IsEndOfCurrentAtBat(Game oldState, Game newState) {
@@ -131,8 +156,6 @@ namespace Cauldron
 		{
 			return ((oldState.inning == newState.inning) &&
 					(oldState.topOfInning == newState.topOfInning) &&
-					(oldState.atBatBalls <= newState.atBatBalls) &&
-					(oldState.atBatStrikes <= newState.atBatStrikes) &&
 					(oldState.homeTeamBatterCount == newState.homeTeamBatterCount) &&
 					(oldState.awayTeamBatterCount == newState.awayTeamBatterCount));
 		}
@@ -214,14 +237,14 @@ namespace Cauldron
 		{
 			int newStrikes = 0;
 			int newBalls = 0;
-			if(IsSameAtBat(m_oldState, newState))
+			if(IsSameAtBat(m_oldState, newState) && !IsEndOfCurrentAtBat(m_oldState, newState))
 			{
 				newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
 				newBalls = newState.atBatBalls - m_currEvent.totalBalls;
 				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
-			else if(IsEndOfCurrentAtBat(m_oldState, newState))
+			else if(IsSameAtBat(m_oldState, newState) && IsEndOfCurrentAtBat(m_oldState, newState))
 			{
 				// If a batter strikes out we never get an update with 3 strikes on it
 				// so check the play text
@@ -238,11 +261,13 @@ namespace Cauldron
 					m_currEvent.isWalk = true;
 					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
 				}
+
 			}
-			else if(IsStartOfNextAtBat(m_oldState, newState))
+			else if(IsStartOfNextAtBat(m_oldState, newState, 2))
 			{
-				// Nothing to see here, just changing batters
-			}
+                newStrikes = newState.atBatStrikes;
+                newBalls = newState.atBatBalls;
+            }
 			// This else case should return so we can assume we are only covering one event below
 			else
 			{
@@ -646,14 +671,42 @@ namespace Cauldron
 				m_currEvent.isLeadoff = true;
 			}
 
-			// Game updates have a batter count per team, so the lineup position is that % 9
-			if (newState.topOfInning)
-			{
-				m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
-			}
-			else 
-			{
-				m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+			// Don't trust the batter counts when we change innings
+			if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
+				// Game updates have a batter count per team, so the lineup position is that % 9
+				if (newState.topOfInning)
+				{
+					m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
+					if(m_currEvent.lineupPosition >= 0)
+					{
+						if (m_currEvent.batterId != null)
+						{
+							m_awayPlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+						}
+						else
+						{
+                            AddFixedError(m_currEvent, $"Setting player based on lineup");
+							m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
+						}
+					}
+				}
+				else 
+				{
+					m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+					if (m_currEvent.lineupPosition >= 0)
+					{
+						if (m_currEvent.batterId != null)
+						{
+							m_homePlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+						}
+						else
+						{
+                            
+                            AddFixedError(m_currEvent, $"Setting player based on lineup");
+							m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
+						}
+					}
+				}
 			}
 		}
 
