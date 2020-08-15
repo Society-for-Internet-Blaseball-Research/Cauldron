@@ -9,3 +9,5 @@ CauldronVisualizer/obj/
 CauldronVisualizer/bin/
 Cauldron/bin/
 CauldronCli/bin/
+release-binaries/
+zipbinaries.bat
