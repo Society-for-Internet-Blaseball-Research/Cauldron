@@ -32,8 +32,8 @@ namespace Cauldron
 		int m_processed = 0;
 		public int Errors => m_errors;
 		int m_errors = 0;
-        public int Fixes => m_fixes;
-        int m_fixes = 0;
+		public int Fixes => m_fixes;
+		int m_fixes = 0;
 		public string GameId => m_gameId;
 		string m_gameId;
 
@@ -76,21 +76,21 @@ namespace Cauldron
 		{
 			m_startedInnings.Add(MakeInningKey(newState));
 		}
-        #endregion
+		#endregion
 
 		private void AddParsingError(string message) {
 			m_currEvent.parsingError = true;
 			m_currEvent.parsingErrorList.Add(message);
 			m_errors++;
-            Console.WriteLine(message);
+			Console.WriteLine(message);
 		}
 
-        private void AddFixedError(string message)
-        {
-            m_currEvent.fixedError = true;
-            m_currEvent.fixedErrorList.Add(message);
-            m_fixes++;
-        }
+		private void AddFixedError(string message)
+		{
+			m_currEvent.fixedError = true;
+			m_currEvent.fixedErrorList.Add(message);
+			m_fixes++;
+		}
 	
 		private bool IsNextHalfInning(Game oldState, Game newState)
 		{
@@ -99,23 +99,23 @@ namespace Cauldron
 					(newState.inning - oldState.inning <= 1));
 		}
 
-        private bool IsStartOfNextAtBat(Game oldState, Game newState)
-        {
+		private bool IsStartOfNextAtBat(Game oldState, Game newState)
+		{
 			// Assumes no gaps
 			bool sameTeam = (((newState.homeTeamBatterCount - oldState.homeTeamBatterCount == 1) ^
-                     	     (newState.awayTeamBatterCount - oldState.awayTeamBatterCount == 1)) &&
-                             (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
+							 (newState.awayTeamBatterCount - oldState.awayTeamBatterCount == 1)) &&
+							 (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
 		
 			bool diffTeam = (IsNextHalfInning(oldState, newState) &&
 							 (newState.homeTeamBatterCount == oldState.homeTeamBatterCount) &&
-                             (newState.awayTeamBatterCount == oldState.awayTeamBatterCount) &&
-                             (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
-            return sameTeam || diffTeam;
-        }
+							 (newState.awayTeamBatterCount == oldState.awayTeamBatterCount) &&
+							 (newState.atBatStrikes == 0 && newState.atBatBalls == 0));
+			return sameTeam || diffTeam;
+		}
 
 		private bool IsEndOfCurrentAtBat(Game oldState, Game newState) {
-            // Assumes no gaps
-            return ((newState.atBatBalls <= oldState.atBatBalls) && 
+			// Assumes no gaps
+			return ((newState.atBatBalls <= oldState.atBatBalls) && 
 					(newState.atBatStrikes <= oldState.atBatStrikes) &&
 					(newState.atBatStrikes == 0 && newState.atBatBalls == 0));
 		}
@@ -124,8 +124,8 @@ namespace Cauldron
 		{
 			return ((oldState.inning == newState.inning) &&
 					(oldState.topOfInning == newState.topOfInning) &&
-                    (oldState.atBatBalls <= newState.atBatBalls) &&
-                    (oldState.atBatStrikes <= newState.atBatStrikes) &&
+					(oldState.atBatBalls <= newState.atBatBalls) &&
+					(oldState.atBatStrikes <= newState.atBatStrikes) &&
 					(oldState.homeTeamBatterCount == newState.homeTeamBatterCount) &&
 					(oldState.awayTeamBatterCount == newState.awayTeamBatterCount));
 		}
@@ -209,28 +209,28 @@ namespace Cauldron
 			int newBalls = 0;
 			if(IsSameAtBat(m_oldState, newState))
 			{
-                newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
-                newBalls = newState.atBatBalls - m_currEvent.totalBalls;
-                m_currEvent.totalBalls = newState.atBatBalls;
-                m_currEvent.totalStrikes = newState.atBatStrikes;
+				newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
+				newBalls = newState.atBatBalls - m_currEvent.totalBalls;
+				m_currEvent.totalBalls = newState.atBatBalls;
+				m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
 			else if(IsEndOfCurrentAtBat(m_oldState, newState))
 			{
-                // If a batter strikes out we never get an update with 3 strikes on it
-                // so check the play text
-                if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+				// If a batter strikes out we never get an update with 3 strikes on it
+				// so check the play text
+				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
 				{
 					// Set the strikes to the total for the team that WAS batting
 					m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
 					newStrikes = m_currEvent.totalStrikes - m_oldState.atBatStrikes;
 				}
-                else if (newState.lastUpdate.Contains("walk"))
-                {
-                    m_currEvent.totalBalls = 4;
-                    m_currEvent.eventType = GameEventType.WALK;
-                    m_currEvent.isWalk = true;
+				else if (newState.lastUpdate.Contains("walk"))
+				{
+					m_currEvent.totalBalls = 4;
+					m_currEvent.eventType = GameEventType.WALK;
+					m_currEvent.isWalk = true;
 					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
-                }
+				}
 			}
 			else if(IsStartOfNextAtBat(m_oldState, newState))
 			{
@@ -249,35 +249,35 @@ namespace Cauldron
 				// Error: We skipped *something*, we should log it
 				AddFixedError($"A single update had more than one pitch, but we fixed it");
 				// We can know for sure the state of the last strike.
-                if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
-                {
-                    if (newState.lastUpdate.Contains("looking"))
-                    {
-                        m_currEvent.pitchesList.Add('C');
+				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+				{
+					if (newState.lastUpdate.Contains("looking"))
+					{
+						m_currEvent.pitchesList.Add('C');
 						newStrikes -= 1;
-                    }
-                    else if (newState.lastUpdate.Contains("swinging"))
-                    {
-                        m_currEvent.pitchesList.Add('S');
+					}
+					else if (newState.lastUpdate.Contains("swinging"))
+					{
+						m_currEvent.pitchesList.Add('S');
 						newStrikes -= 1;
-                    }
-                }
+					}
+				}
 				// We can know for sure that the last pitch was a ball
-                else if (newState.lastUpdate.Contains("walk"))
-                {
-                    m_currEvent.pitchesList.Add('B');
-                    newBalls -= 1;
-                }
+				else if (newState.lastUpdate.Contains("walk"))
+				{
+					m_currEvent.pitchesList.Add('B');
+					newBalls -= 1;
+				}
 
 				// Add the rest as unknowns
-                for (int i = 0; i < newStrikes; i++)
-                {
-                    m_currEvent.pitchesList.Add('K');
-                }
-                for (int i = 0; i < newBalls; i++)
-                {
-                    m_currEvent.pitchesList.Add('A');
-                }
+				for (int i = 0; i < newStrikes; i++)
+				{
+					m_currEvent.pitchesList.Add('K');
+				}
+				for (int i = 0; i < newBalls; i++)
+				{
+					m_currEvent.pitchesList.Add('A');
+				}
 			}
 			else if (newStrikes == 1)
 			{
@@ -296,7 +296,7 @@ namespace Cauldron
 				else
 				{
 					m_currEvent.pitchesList.Add('K');
-                    AddFixedError($"A we missed a single strike, but we fixed it");
+					AddFixedError($"A we missed a single strike, but we fixed it");
 				}
 			} 
 			else if (newBalls == 1)
@@ -304,7 +304,7 @@ namespace Cauldron
 				m_currEvent.pitchesList.Add('B');
 				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("walk.")))
 				{
-                    AddFixedError($"A we missed a single ball, but we fixed it");
+					AddFixedError($"A we missed a single ball, but we fixed it");
 				}
 			}
 
