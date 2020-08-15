@@ -24,8 +24,8 @@ namespace Cauldron
 		Dictionary<string, string> m_responsiblePitchers;
 
 		// Reconstruct the team linup from game data, used in identifying unknown batters
-        string[] m_homePlayerLineup;
-        string[] m_awayPlayerLineup;
+		string[] m_homePlayerLineup;
+		string[] m_awayPlayerLineup;
 
 		// Keep of track of whether we've had a valid batter for this inning
 		HashSet<string> m_startedInnings;
@@ -127,7 +127,7 @@ namespace Cauldron
 		{
 			// Assumes no gaps
 			int totalBattingGap = (newState.homeTeamBatterCount - oldState.homeTeamBatterCount) +
-                                  (newState.awayTeamBatterCount - oldState.awayTeamBatterCount);
+								  (newState.awayTeamBatterCount - oldState.awayTeamBatterCount);
 
 			bool sameTeam = ((totalBattingGap == 1) &&
 							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
@@ -138,9 +138,9 @@ namespace Cauldron
 
 			bool startOfGame = ((newState.inning == 0 && newState.topOfInning == true )&&
 								(oldState.homeTeamBatterCount == 0) &&
-                                (oldState.awayTeamBatterCount == 0) &&
-                                (newState.homeTeamBatterCount == -1) &&
-                                (newState.awayTeamBatterCount == -1));
+								(oldState.awayTeamBatterCount == 0) &&
+								(newState.homeTeamBatterCount == -1) &&
+								(newState.awayTeamBatterCount == -1));
 
 			return sameTeam || diffTeam || startOfGame;
 		}
@@ -265,9 +265,9 @@ namespace Cauldron
 			}
 			else if(IsStartOfNextAtBat(m_oldState, newState, 2))
 			{
-                newStrikes = newState.atBatStrikes;
-                newBalls = newState.atBatBalls;
-            }
+				newStrikes = newState.atBatStrikes;
+				newBalls = newState.atBatBalls;
+			}
 			// This else case should return so we can assume we are only covering one event below
 			else
 			{
@@ -685,7 +685,7 @@ namespace Cauldron
 						}
 						else
 						{
-                            AddFixedError(m_currEvent, $"Setting player based on lineup");
+							AddFixedError(m_currEvent, $"Setting player based on lineup");
 							m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
 						}
 					}
@@ -701,8 +701,8 @@ namespace Cauldron
 						}
 						else
 						{
-                            
-                            AddFixedError(m_currEvent, $"Setting player based on lineup");
+							
+							AddFixedError(m_currEvent, $"Setting player based on lineup");
 							m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
 						}
 					}
