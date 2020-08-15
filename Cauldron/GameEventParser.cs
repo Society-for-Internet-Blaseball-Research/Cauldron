@@ -52,6 +52,7 @@ namespace Cauldron
 			m_discards = 0;
 			m_processed = 0;
 			m_errors = 0;
+			m_fixes = 0;
 			m_gameId = initState._id;
 			m_responsiblePitchers = new Dictionary<string, string>();
 			m_startedInnings = new HashSet<string>();
