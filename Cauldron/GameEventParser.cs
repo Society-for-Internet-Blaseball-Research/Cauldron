@@ -489,6 +489,11 @@ namespace Cauldron
 			if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay >= 3 || newState.gameComplete)
 			{
 				// Baserunners should be exactly what we had in the last update
+				// But create a new one if it's null
+				if(m_currEvent.baseRunners == null)
+				{
+					m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+				}
 				return;
 			}
 			else
