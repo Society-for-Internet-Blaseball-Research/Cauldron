@@ -644,7 +644,7 @@ namespace Cauldron
 			if (m_currEvent.eventType == GameEventType.HOME_RUN)
 			{
 				GameEventBaseRunner runner = new GameEventBaseRunner();
-				runner.runnerId = newState.BatterId;
+				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
 				runner.baseAfterPlay = 4;
@@ -768,6 +768,17 @@ namespace Cauldron
 		/// </summary>
 		private void ErrorCheckBeforeEmit(GameEvent toEmit)
 		{
+			if(toEmit.baseRunners.Count > 0)
+			{
+				foreach(var runner in toEmit.baseRunners)
+				{
+					if(runner.runnerId == null)
+					{
+						AddParsingError(toEmit, $"Emitted an event with a NULL runnerId");
+						runner.runnerId = "";
+					}
+				}
+			}
 			if(toEmit.batterId == null)
 			{
 				AddParsingError(toEmit, $"Emitted an event with NULL batterId");
