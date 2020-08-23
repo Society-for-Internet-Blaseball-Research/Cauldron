@@ -33,6 +33,11 @@ namespace Cauldron
 		int m_batterCount = 0;
 		// Map of pitcher IDs indexed by batter ID; used in attributing baserunners to pitchers
 		Dictionary<string, string> m_responsiblePitchers;
+
+		// Reconstruct the team linup from game data, used in identifying unknown batters
+		string[] m_homePlayerLineup;
+		string[] m_awayPlayerLineup;
+
 		// Keep of track of whether we've had a valid batter for this inning
 		HashSet<string> m_startedInnings;
 
@@ -43,6 +48,8 @@ namespace Cauldron
 		int m_processed = 0;
 		public int Errors => m_errors;
 		int m_errors = 0;
+		public int Fixes => m_fixes;
+		int m_fixes = 0;
 		public string GameId => m_gameId;
 		string m_gameId;
 
@@ -65,12 +72,15 @@ namespace Cauldron
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_playerNameToId = new Dictionary<string, string>();
+			m_homePlayerLineup = new string[10];
+			m_awayPlayerLineup = new string[10];
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
 			m_discards = 0;
 			m_processed = 0;
 			m_errors = 0;
+			m_fixes = 0;
 			m_gameId = initState._id;
 			m_responsiblePitchers = new Dictionary<string, string>();
 			m_startedInnings = new HashSet<string>();
@@ -100,6 +110,82 @@ namespace Cauldron
 		}
 		#endregion
 
+		private void AddParsingError(GameEvent e, string message) 
+		{
+			if (e != null)
+			{
+				e.parsingError = true;
+				e.parsingErrorList.Add(message);
+			}
+			m_errors++;
+		}
+
+		private void AddFixedError(GameEvent e, string message)
+		{
+			if (e != null)
+			{
+				e.fixedError = true;
+				e.fixedErrorList.Add(message);
+			}
+			m_fixes++;
+		}
+	
+		private bool IsNextHalfInning(Game oldState, Game newState)
+		{
+			// Assumes no gaps
+			return ((newState.topOfInning != oldState.topOfInning) &&
+					(newState.inning - oldState.inning <= 1));
+		}
+
+		private bool IsStartOfInningMessage(Game newState) {
+			return (newState.lastUpdate.Contains("Top of ") || newState.lastUpdate.Contains("Bottom of "));
+		}
+
+		private bool IsGameNearlyOver(Game oldState, Game newState)
+		{
+			return ((newState.inning >= 8) &&
+					(oldState.halfInningOuts == 2 && newState.halfInningOuts == 0) &&
+					((!newState.topOfInning) || (newState.topOfInning && newState.homeScore > newState.awayScore)));
+		}
+
+		private bool IsStartOfNextAtBat(Game oldState, Game newState, int tolerance = 0)
+		{
+			// Assumes no gaps
+			int totalBattingGap = (newState.homeTeamBatterCount - oldState.homeTeamBatterCount) +
+								  (newState.awayTeamBatterCount - oldState.awayTeamBatterCount);
+
+			bool sameTeam = ((totalBattingGap == 1) &&
+							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
+		
+			bool diffTeam = ((IsNextHalfInning(oldState, newState) || IsGameNearlyOver(oldState, newState)) &&
+							 ((totalBattingGap == 0) || (totalBattingGap == -1 && newState.lastUpdate.Contains("caught"))) &&
+							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
+
+			bool startOfGame = ((newState.inning == 0 && newState.topOfInning == true )&&
+								(oldState.homeTeamBatterCount == 0) &&
+								(oldState.awayTeamBatterCount == 0) &&
+								(newState.homeTeamBatterCount == -1) &&
+								(newState.awayTeamBatterCount == -1));
+
+			return sameTeam || diffTeam || startOfGame;
+		}
+
+		private bool IsEndOfCurrentAtBat(Game oldState, Game newState) {
+			// Assumes no gaps
+			return ((newState.atBatBalls <= oldState.atBatBalls) && 
+					(newState.atBatStrikes <= oldState.atBatStrikes) &&
+					(newState.atBatStrikes == 0 && newState.atBatBalls == 0));
+		}
+
+		private bool IsSameAtBat(Game oldState, Game newState)
+		{
+			return ((oldState.inning == newState.inning) &&
+					(oldState.topOfInning == newState.topOfInning) &&
+					(oldState.homeTeamBatterCount == newState.homeTeamBatterCount) &&
+					(oldState.awayTeamBatterCount == newState.awayTeamBatterCount));
+		}
+
+
 		// If the Id and name are valid, store them in our map
 		private void CapturePlayerId(string id, string name)
 		{
@@ -125,6 +211,8 @@ namespace Cauldron
 			GameEvent currEvent = new GameEvent();
 			currEvent.parsingError = false;
 			currEvent.parsingErrorList = new List<string>();
+			currEvent.fixedError = false;
+			currEvent.fixedErrorList = new List<string>();
 
 			currEvent.firstPerceivedAt = timeStamp;
 
@@ -170,22 +258,83 @@ namespace Cauldron
 		/// </summary>
 		private void UpdateBallsAndStrikes(Game newState)
 		{
-			int newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
-
-			if (newStrikes > 0)
+			int newStrikes = 0;
+			int newBalls = 0;
+			if(IsSameAtBat(m_oldState, newState) && !IsEndOfCurrentAtBat(m_oldState, newState))
 			{
+				newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
+				newBalls = newState.atBatBalls - m_currEvent.totalBalls;
+				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
-			// If a batter strikes out we never get an update with 3 strikes on it
-			// so check the play text
-			else if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+			else if(IsSameAtBat(m_oldState, newState) && IsEndOfCurrentAtBat(m_oldState, newState))
 			{
-				// Set the strikes to the total for the team that WAS batting
-				newStrikes = 1;
-				m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
+				// If a batter strikes out we never get an update with 3 strikes on it
+				// so check the play text
+				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+				{
+					// Set the strikes to the total for the team that WAS batting
+					m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
+					newStrikes = m_currEvent.totalStrikes - m_oldState.atBatStrikes;
+				}
+				else if (newState.lastUpdate.Contains("walk"))
+				{
+					m_currEvent.totalBalls = 4;
+					m_currEvent.eventType = GameEventType.WALK;
+					m_currEvent.isWalk = true;
+					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
+				}
+
+			}
+			else if(IsStartOfNextAtBat(m_oldState, newState, 2))
+			{
+				newStrikes = newState.atBatStrikes;
+				newBalls = newState.atBatBalls;
+			}
+			// This else case should return so we can assume we are only covering one event below
+			else
+			{
+				AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
+				return;
 			}
 
-			if (newStrikes > 0)
+			// Oops, we hit a gap, lets see if we can fill it in
+			if(newStrikes + newBalls > 1)
+			{
+				// Error: We skipped *something*, we should log it
+				AddFixedError(m_currEvent, $"A single update had more than one pitch, but we fixed it");
+				// We can know for sure the state of the last strike.
+				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
+				{
+					if (newState.lastUpdate.Contains("looking"))
+					{
+						m_currEvent.pitchesList.Add('C');
+						newStrikes -= 1;
+					}
+					else if (newState.lastUpdate.Contains("swinging"))
+					{
+						m_currEvent.pitchesList.Add('S');
+						newStrikes -= 1;
+					}
+				}
+				// We can know for sure that the last pitch was a ball
+				else if (newState.lastUpdate.Contains("walk"))
+				{
+					m_currEvent.pitchesList.Add('B');
+					newBalls -= 1;
+				}
+
+				// Add the rest as unknowns
+				for (int i = 0; i < newStrikes; i++)
+				{
+					m_currEvent.pitchesList.Add('K');
+				}
+				for (int i = 0; i < newBalls; i++)
+				{
+					m_currEvent.pitchesList.Add('A');
+				}
+			}
+			else if (newStrikes == 1)
 			{
 				if (newState.lastUpdate.Contains("looking"))
 				{
@@ -197,35 +346,21 @@ namespace Cauldron
 				}
 				else if (newState.lastUpdate.Contains("Foul Ball"))
 				{
-					// Do nothing, fouls are handled below
+					// Do nothing, fouls are handled at the end
 				}
 				else
 				{
-					m_errors++;
-					m_currEvent.parsingError = true;
-					m_currEvent.parsingErrorList.Add($"Strikes went from {m_oldState.atBatStrikes} ('{m_oldState.lastUpdate}') to {newState.atBatStrikes} ('{newState.lastUpdate}')");
+					m_currEvent.pitchesList.Add('K');
+					AddFixedError(m_currEvent, $"We missed a single strike, but we fixed it");
 				}
-			}
-
-			int newBalls = newState.atBatBalls - m_currEvent.totalBalls;
-			if (newBalls > 0)
+			} 
+			else if (newBalls == 1)
 			{
-				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.pitchesList.Add('B');
-
-				if(!newState.lastUpdate.Contains("Ball.") || newBalls > 1)
+				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("walk.")))
 				{
-					m_errors++;
-					m_currEvent.parsingError = true;
-					m_currEvent.parsingErrorList.Add($"Balls went from {m_oldState.atBatBalls} ('{m_oldState.lastUpdate}') to {newState.atBatBalls} ('{newState.lastUpdate}')");
+					AddFixedError(m_currEvent, $"We missed a single ball, but we fixed it");
 				}
-			}
-			else if (newState.lastUpdate.Contains("walk"))
-			{
-				m_currEvent.totalBalls = 4;
-				m_currEvent.pitchesList.Add('B');
-				m_currEvent.eventType = GameEventType.WALK;
-				m_currEvent.isWalk = true;
 			}
 
 			if (newState.lastUpdate.Contains("Foul Ball"))
@@ -281,6 +416,7 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
 			{
 				m_currEvent.pitchesList.Add('X');
+				m_currEvent.battedBallType = BattedBallType.UNKNOWN;
 			}
 
 			// Extremely basic single/double/triple/HR detection
@@ -307,9 +443,17 @@ namespace Cauldron
 				m_currEvent.basesHit = 4;
 				m_currEvent.batterBaseAfterPlay = 4;
 				m_currEvent.eventType = GameEventType.HOME_RUN;
+				m_currEvent.battedBallType = BattedBallType.FLY;
 			}
 
-			// TODO currEvent.battedBallType
+			if(newState.lastUpdate.Contains("ground"))
+			{
+				m_currEvent.battedBallType = BattedBallType.GROUNDER;
+			}
+			if(newState.lastUpdate.Contains("flyout"))
+			{
+				m_currEvent.battedBallType = BattedBallType.FLY;
+			}
 		}
 
 		/// <summary>
@@ -364,12 +508,23 @@ namespace Cauldron
 				m_currEvent.isLastEventForPlateAppearance = false;
 			}
 
-			// Clear to a new list every time we parse an update
-			// Since runners can only move in cases where we emit, the last state should be correct
-			// TODO: when the 3rd out happens, newState will not have any runners
-			// If we want to show the runners as still stranded in the 3rd out event, we'll have to
-			// dig back into the m_oldState to find them
-			m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+			// If this play is known to be ending the inning or game
+			if (m_currEvent.outsBeforePlay + m_currEvent.outsOnPlay >= 3 || newState.gameComplete)
+			{
+				// Baserunners should be exactly what we had in the last update
+				// But create a new one if it's null
+				if(m_currEvent.baseRunners == null)
+				{
+					m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+				}
+				return;
+			}
+			else
+			{
+				// Clear to a new list every time we parse an update
+				// Since runners can only move in cases where we emit, the last state should be correct
+				m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+			}
 
 			// Handle runners present in the new state and probably the old state too
 			for(int i=0; i < newState.baseRunners.Count; i++)
@@ -418,15 +573,26 @@ namespace Cauldron
 				{
 					runner.baseBeforePlay = 0;
 				}
-				
+
 				m_currEvent.baseRunners.Add(runner);
 			}
 
-			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
-			for(int i=0; i < m_oldState.baseRunners.Count; i++)
+			// Translate old baserunners into a more easily looped form
+			Dictionary<int, string> oldBases = new Dictionary<int, string>();
+			for (int i = 0; i < m_oldState.baseRunners.Count; i++)
 			{
-				string runnerId = m_oldState.baseRunners[i];
-				int baseIndex = m_oldState.basesOccupied[i];
+				oldBases[m_oldState.basesOccupied[i]] = m_oldState.baseRunners[i];
+			}
+
+			int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
+			int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
+			int scoreDiff = newScore - oldScore;
+
+			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
+			foreach (var kvp in oldBases.OrderByDescending(x => x.Key))
+			{
+				string runnerId = kvp.Value;
+				int baseIndex = kvp.Key;
 
 				bool found = false;
 				for(int j=0; j < newState.baseRunners.Count; j++)
@@ -436,12 +602,12 @@ namespace Cauldron
 						found = true;
 					}
 				}
-				// If we didn't find a runner from last state, and the outs are the same, they must have scored
-				// newState might already have jumped to the next inning, so check old
-				int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
-				int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
-				if (!found && (m_currEvent.outsOnPlay == 0 || newScore > oldScore))
+
+				// If this old runner was not found and we have runs not attributed yet
+				if (!found && scoreDiff > 0)
 				{
+					// One run accounted for
+					scoreDiff--;
 					GameEventBaseRunner runner = new GameEventBaseRunner();
 					runner.runnerId = runnerId;
 					if(m_responsiblePitchers.ContainsKey(runnerId))
@@ -451,9 +617,9 @@ namespace Cauldron
 					else
 					{
 						runner.responsiblePitcherId = "";
-						m_currEvent.parsingError = true;
-						m_currEvent.parsingErrorList.Add($"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
 					}
+
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 4;
 					if (newState.lastUpdate.Contains("steals"))
@@ -470,11 +636,76 @@ namespace Cauldron
 				{
 					// Fine, he was found
 				}
+				else if(m_oldState.inning >= 8 && m_oldState.halfInningOuts == 2)
+				{
+					// In the case that the game-ending out just happened, we'll get an update still in the 9th inning but with outs back at 0 and gameComplete not yet true. Sigh.
+					// For now, allow this in the 9th inning with 2 outs
+					GameEventBaseRunner runner = new GameEventBaseRunner();
+					runner.runnerId = runnerId;
+					if (m_responsiblePitchers.ContainsKey(runnerId))
+					{
+						runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+					}
+					else
+					{
+						runner.responsiblePitcherId = "";
+						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+					}
+
+					runner.baseBeforePlay = baseIndex + 1;
+					runner.baseAfterPlay = baseIndex + 1;
+					m_currEvent.baseRunners.Add(runner);
+				}
 				else
-				{ 
+				{
 					// What the hell else could have happened?
-					m_currEvent.parsingError = true;
-					m_currEvent.parsingErrorList.Add($"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
+					AddParsingError(m_currEvent, $"Baserunner {runnerId} missing from base {baseIndex + 1}, but there were no outs and score went from {oldScore} to {newScore}");
+				}
+			}
+
+			// Add the homering batter as a baserunner
+			if (m_currEvent.eventType == GameEventType.HOME_RUN)
+			{
+				GameEventBaseRunner runner = new GameEventBaseRunner();
+				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
+				runner.responsiblePitcherId = newState.PitcherId;
+				runner.baseBeforePlay = 0;
+				runner.baseAfterPlay = 4;
+				m_currEvent.baseRunners.Add(runner);
+			}
+
+			// Check for fixable errors with missed hits
+			if(m_currEvent.eventType == GameEventType.UNKNOWN)
+			{
+				// Look to see if the batter got on base
+				foreach(var runner in m_currEvent.baseRunners)
+				{
+					if(runner.runnerId == m_currEvent.batterId)
+					{
+						switch(runner.baseAfterPlay)
+						{
+							case 1:
+								m_currEvent.eventType = GameEventType.SINGLE;
+								m_currEvent.basesHit = 1;
+								break;
+							case 2:
+								m_currEvent.eventType = GameEventType.DOUBLE;
+								m_currEvent.basesHit = 2;
+								break;
+							case 3:
+								m_currEvent.eventType = GameEventType.TRIPLE;
+								m_currEvent.basesHit = 3;
+								break;
+							case 4:
+								m_currEvent.eventType = GameEventType.HOME_RUN;
+								m_currEvent.basesHit = 4;
+								break;
+						}
+
+						// Some kind of hit!
+						m_currEvent.pitchesList.Add('X');
+						AddFixedError(m_currEvent, $"Found the batter apparently hit a {m_currEvent.eventType} without us seeing it, but fixed it.");
+					}
 				}
 			}
 
@@ -503,14 +734,42 @@ namespace Cauldron
 				m_currEvent.isLeadoff = true;
 			}
 
-			// Game updates have a batter count per team, so the lineup position is that % 9
-			if (newState.topOfInning)
-			{
-				m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
-			}
-			else 
-			{
-				m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+			// Don't trust the batter counts when we change innings
+			if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
+				// Game updates have a batter count per team, so the lineup position is that % 9
+				if (newState.topOfInning)
+				{
+					m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
+					if(m_currEvent.lineupPosition >= 0)
+					{
+						if (m_currEvent.batterId != null)
+						{
+							m_awayPlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+						}
+						else
+						{
+							AddFixedError(m_currEvent, $"Setting player based on lineup");
+							m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
+						}
+					}
+				}
+				else 
+				{
+					m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+					if (m_currEvent.lineupPosition >= 0)
+					{
+						if (m_currEvent.batterId != null)
+						{
+							m_homePlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+						}
+						else
+						{
+							
+							AddFixedError(m_currEvent, $"Setting player based on lineup");
+							m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
+						}
+					}
+				}
 			}
 		}
 
@@ -567,17 +826,28 @@ namespace Cauldron
 		/// </summary>
 		private void ErrorCheckBeforeEmit(GameEvent toEmit)
 		{
+			if(toEmit.baseRunners.Count > 0)
+			{
+				foreach(var runner in toEmit.baseRunners)
+				{
+					if(runner.runnerId == null)
+					{
+						AddParsingError(toEmit, $"Emitted an event with a NULL runnerId");
+						runner.runnerId = "";
+					}
+				}
+			}
 			if(toEmit.batterId == null)
 			{
-				m_errors++;
-				toEmit.parsingError = true;
-				toEmit.parsingErrorList.Add($"Emitted an event with NULL batterId");
+				AddParsingError(toEmit, $"Emitted an event with NULL batterId");
 			}
 			if (toEmit.pitcherId == null)
 			{
-				m_errors++;
-				toEmit.parsingError = true;
-				toEmit.parsingErrorList.Add($"Emitted an event with NULL pitcherId");
+				AddParsingError(toEmit, $"Emitted an event with NULL pitcherId");
+			}
+			if(toEmit.eventType == GameEventType.UNKNOWN)
+			{
+				AddParsingError(toEmit, "Unknown event type");
 			}
 		}
 

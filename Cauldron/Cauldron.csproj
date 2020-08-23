@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <PackageId>SIBR.Cauldron</PackageId>
-    <Version>1.2.1</Version>
+    <Version>1.4.2</Version>
     <Authors>lilserf</Authors>
     <Company>Society for Internet Blaseball Research</Company>
   </PropertyGroup>

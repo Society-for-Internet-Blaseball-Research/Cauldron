@@ -5,6 +5,14 @@ using System.Text.Json.Serialization;
 namespace Cauldron
 {
 
+	public static class BattedBallType
+	{
+		public static string UNKNOWN = "UNKNOWN";
+		public static string GROUNDER = "GROUNDER";
+		public static string BUNT = "BUNT";
+		public static string FLY = "FLY";
+	}
+
 	public static class GameEventType
 	{
 		public static string UNKNOWN = "UNKNOWN";
@@ -117,5 +125,7 @@ namespace Cauldron
 
 		public bool parsingError { get; set; }
 		public List<string> parsingErrorList { get; set; }
+		public bool fixedError { get; set; }
+		public List<string> fixedErrorList { get; set; }
 	}
 }

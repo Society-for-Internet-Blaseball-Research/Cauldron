@@ -5,13 +5,9 @@ Run from the command line:
 
 	CauldronCli.exe [input file in newline-delimited JSON format] [output file in newline-delimited JSON format]
 
-## TODO
-
-* Handle partial games by ignoring them and printing a warning?
+If the input JSON doesn't contain a full game from start to finish, resulting stats may be wonky.
 
 ## Unimplemented Fields
-
-* `battedBallType`
 
 ## Partially implemented fields
 
