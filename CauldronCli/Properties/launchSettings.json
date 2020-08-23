@@ -2,7 +2,7 @@
   "profiles": {
     "CauldronCli": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\Users\\Mark\\Downloads\\season-3\\iliana.json  D:\\Users\\Mark\\Downloads\\season-3\\iliana.sibr"
+      "commandLineArgs": "-i D:\\Users\\Mark\\Downloads\\season-3\\iliana.json --outputfolder D:\\Users\\Mark\\Downloads\\season-3\\individual"
     }
   }
 }
