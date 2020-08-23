@@ -651,6 +651,41 @@ namespace Cauldron
 				m_currEvent.baseRunners.Add(runner);
 			}
 
+			// Check for fixable errors with missed hits
+			if(m_currEvent.eventType == GameEventType.UNKNOWN)
+			{
+				// Look to see if the batter got on base
+				foreach(var runner in m_currEvent.baseRunners)
+				{
+					if(runner.runnerId == m_currEvent.batterId)
+					{
+						switch(runner.baseAfterPlay)
+						{
+							case 1:
+								m_currEvent.eventType = GameEventType.SINGLE;
+								m_currEvent.basesHit = 1;
+								break;
+							case 2:
+								m_currEvent.eventType = GameEventType.DOUBLE;
+								m_currEvent.basesHit = 2;
+								break;
+							case 3:
+								m_currEvent.eventType = GameEventType.TRIPLE;
+								m_currEvent.basesHit = 3;
+								break;
+							case 4:
+								m_currEvent.eventType = GameEventType.HOME_RUN;
+								m_currEvent.basesHit = 4;
+								break;
+						}
+
+						// Some kind of hit!
+						m_currEvent.pitchesList.Add('X');
+						AddFixedError(m_currEvent, $"Found the batter apparently hit a {m_currEvent.eventType} without us seeing it, but fixed it.");
+					}
+				}
+			}
+
 			// Last thing - if we just changed innings, clear the responsible pitcher list
 			// Note that we do this AFTER attributing baserunners who may have just done something on this play
 			// and whose pitcher was from this old inning
