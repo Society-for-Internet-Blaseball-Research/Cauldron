@@ -88,17 +88,20 @@ namespace Cauldron
 			}
 
 			// Currently we only care about the 'schedule' field that has the game updates
-			foreach (var game in update.Schedule)
+			if (update.Schedule != null)
 			{
-				var timestamp = update?.clientMeta?.timestamp;
-
-				// If timestamp is missing, just set to unix time 0
-				if(timestamp == null)
+				foreach (var game in update.Schedule)
 				{
-					timestamp = TimestampConverter.unixEpoch;
-				}
+					var timestamp = update?.clientMeta?.timestamp;
 
-				ProcessGameObject(game, timestamp.Value);
+					// If timestamp is missing, just set to unix time 0
+					if (timestamp == null)
+					{
+						timestamp = TimestampConverter.unixEpoch;
+					}
+
+					ProcessGameObject(game, timestamp.Value);
+				}
 			}
 		}
 
