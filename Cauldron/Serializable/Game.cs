@@ -12,7 +12,23 @@ namespace Cauldron
 	{
 		public List<int> basesOccupied { get; set; }
 		public List<string> baseRunners { get; set; }
+
+		[JsonIgnore]
+		public string gameId
+		{
+			get
+			{
+				return _id ?? id;
+			}
+		}
+
+		// SEASON 3 and earlier used the '_id' field
+		// Use the 'gameId' property above for best results
 		public string _id { get; set; }
+
+		// SEASON 4 uses an 'id' field
+		// Use the 'gameId' property above for best results
+		public string id { get; set; }
 		public string awayTeamName { get; set; }
 		public string awayTeamNickname { get; set; }
 		public string awayTeam { get; set; }

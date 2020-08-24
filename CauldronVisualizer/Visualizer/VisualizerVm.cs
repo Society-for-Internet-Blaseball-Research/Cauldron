@@ -303,7 +303,7 @@ namespace CauldronVisualizer
 
 			GameUpdateVm updateVm = item as GameUpdateVm;
 
-			return updateVm?.Update?._id.Contains(m_filterText) ?? false;
+			return updateVm?.Update?.gameId.Contains(m_filterText) ?? false;
 		}
 
 		public bool FilterGameEvents(object item)
@@ -546,7 +546,7 @@ namespace CauldronVisualizer
 			{
 				GameUpdateVm vm = obj as GameUpdateVm;
 
-				if(vm?.Update._id == gameId && vm?.Update.timestamp == timestamp)
+				if(vm?.Update.gameId == gameId && vm?.Update.timestamp == timestamp)
 				{
 					return vm;
 				}
@@ -574,7 +574,7 @@ namespace CauldronVisualizer
 					if(!m_responding && SelectedGameUpdate != null)
 					{
 						m_responding = true;
-						SelectedGameEvent = FindEvent(SelectedGameUpdate.Update._id, SelectedGameUpdate.Update.timestamp);
+						SelectedGameEvent = FindEvent(SelectedGameUpdate.Update.gameId, SelectedGameUpdate.Update.timestamp);
 						m_responding = false;
 					}
 					break;

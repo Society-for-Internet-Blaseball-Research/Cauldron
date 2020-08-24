@@ -58,18 +58,18 @@ namespace Cauldron
 		{
 
 			// Add new games if needed
-			if (!m_trackedGames.ContainsKey(game._id))
+			if (!m_trackedGames.ContainsKey(game.gameId))
 			{
 				GameEventParser parser = new GameEventParser();
 				parser.GameComplete += GameCompleteInternal;
 				parser.StartNewGame(game, timestamp);
 
-				m_trackedGames[game._id] = parser;
+				m_trackedGames[game.gameId] = parser;
 			}
 			else
 			{
 				// Update a current game
-				GameEventParser parser = m_trackedGames[game._id];
+				GameEventParser parser = m_trackedGames[game.gameId];
 				parser.ParseGameUpdate(game, timestamp);
 			}
 		}

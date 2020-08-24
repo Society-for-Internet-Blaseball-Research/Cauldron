@@ -81,7 +81,7 @@ namespace Cauldron
 			m_processed = 0;
 			m_errors = 0;
 			m_fixes = 0;
-			m_gameId = initState._id;
+			m_gameId = initState.gameId;
 			m_responsiblePitchers = new Dictionary<string, string>();
 			m_startedInnings = new HashSet<string>();
 
@@ -216,7 +216,7 @@ namespace Cauldron
 
 			currEvent.firstPerceivedAt = timeStamp;
 
-			currEvent.gameId = newState._id;
+			currEvent.gameId = newState.gameId;
 			currEvent.season = newState.season;
 			currEvent.eventIndex = m_eventIndex;
 			currEvent.batterCount = m_batterCount;
@@ -870,7 +870,7 @@ namespace Cauldron
 				m_discards++;
 				return;
 			}
-			else if(newState._id != m_oldState._id)
+			else if(newState.gameId != m_oldState.gameId)
 			{
 				Console.WriteLine("ERROR: GameEventParser got an update for the wrong game!");
 				m_discards++;
