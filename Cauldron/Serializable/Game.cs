@@ -42,8 +42,8 @@ namespace Cauldron
 		public int inning { get; set; }
 		public bool topOfInning { get; set; }
 		public int halfInningOuts { get; set; }
-		public int homeStrikes { get; set; }
-		public int awayStrikes { get; set; }
+		public int? homeStrikes { get; set; }
+		public int? awayStrikes { get; set; }
 		public int atBatBalls { get; set; }
 		public int atBatStrikes { get; set; }
 		public string homePitcher { get; set; }
@@ -58,6 +58,20 @@ namespace Cauldron
 		public int day { get; set; } = 0;
 		public int awayTeamBatterCount { get; set; }
 		public int homeTeamBatterCount { get; set; }
+
+		public float homeOdds { get; set; }
+		public float awayOdds { get; set; }
+		public int? weather { get; set; }
+		public bool isPostseason { get; set; }
+
+		public int seriesIndex { get; set; }
+		public int seriesLength { get; set; }
+		public bool shame { get; set; }
+
+		public string terminology { get; set; }
+		public string rules { get; set; }
+		public string statsheet { get; set; }
+
 
 		[JsonConverter(typeof(TimestampConverter))]
 		public DateTime timestamp { get; set; }

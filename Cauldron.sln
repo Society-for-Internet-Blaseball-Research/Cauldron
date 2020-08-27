@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cauldron", "Cauldron\Cauldr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CauldronCli", "CauldronCli\CauldronCli.csproj", "{3653058B-04DE-493A-816E-BCCA21DAFA62}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CauldronVisualizer", "CauldronVisualizer\CauldronVisualizer.csproj", "{8BE727E8-2DFC-49B4-84E9-F82F1857534B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CauldronVisualizer", "CauldronVisualizer\CauldronVisualizer.csproj", "{8BE727E8-2DFC-49B4-84E9-F82F1857534B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{777238CF-BE19-4E50-98C2-9CF45049166F}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -224,8 +224,8 @@ namespace Cauldron
 			currEvent.topOfInning = newState.topOfInning;
 			currEvent.outsBeforePlay = m_oldState.halfInningOuts;
 
-			currEvent.homeStrikeCount = newState.homeStrikes;
-			currEvent.awayStrikeCount = newState.awayStrikes;
+			currEvent.homeStrikeCount = newState.homeStrikes.GetValueOrDefault();
+			currEvent.awayStrikeCount = newState.awayStrikes.GetValueOrDefault();
 
 			currEvent.homeScore = newState.homeScore;
 			currEvent.awayScore = newState.awayScore;
@@ -274,7 +274,7 @@ namespace Cauldron
 				if (newState.lastUpdate.Contains("struck out") || newState.lastUpdate.Contains("strikes out"))
 				{
 					// Set the strikes to the total for the team that WAS batting
-					m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes : m_oldState.homeStrikes;
+					m_currEvent.totalStrikes = m_oldState.topOfInning ? m_oldState.awayStrikes.GetValueOrDefault() : m_oldState.homeStrikes.GetValueOrDefault();
 					newStrikes = m_currEvent.totalStrikes - m_oldState.atBatStrikes;
 				}
 				else if (newState.lastUpdate.Contains("walk"))
