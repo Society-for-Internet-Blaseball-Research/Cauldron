@@ -785,11 +785,26 @@ namespace Cauldron
 
 		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ \w+)! Replaced by (\w+ \w+)");
 		private static Regex peanutRegex = new Regex(@".*er (\w+ \w+) swallowed.*had an? (\w+) reaction!");
-
+		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ \w+) is now up to bat\.");
 		private void UpdatePlayerEvents(Game newState)
 		{
+			var match = feedbackRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				// Old player
+				PlayerEvent oldEvent = new PlayerEvent();
+				oldEvent.eventType = PlayerEventType.FEEDBACK;
+				oldEvent.playerId = m_currEvent.batterId;
+				m_currEvent.playerEvents.Add(oldEvent);
 
-			var match = incineRegex.Match(newState.lastUpdate);
+				// New player
+				PlayerEvent newEvent = new PlayerEvent();
+				newEvent.eventType = PlayerEventType.FEEDBACK;
+				TryPopulatePlayerId(newEvent, match.Groups[1].Value);
+				m_currEvent.playerEvents.Add(newEvent);
+			}
+
+			match = incineRegex.Match(newState.lastUpdate);
 			if (match.Success)
 			{
 				PlayerEvent newEvent = new PlayerEvent();

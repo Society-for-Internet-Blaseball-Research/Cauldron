@@ -40,6 +40,7 @@ namespace Cauldron
 		public static string INCINERATION = "INCINERATION";
 		public static string PEANUT_GOOD = "PEANUT_GOOD";
 		public static string PEANUT_BAD = "PEANUT_BAD";
+		public static string FEEDBACK = "FEEDBACK";
 	}
 
 	/// <summary>
