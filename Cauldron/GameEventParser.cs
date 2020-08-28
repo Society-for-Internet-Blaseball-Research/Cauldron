@@ -218,6 +218,7 @@ namespace Cauldron
 
 			currEvent.gameId = newState.gameId;
 			currEvent.season = newState.season;
+			currEvent.day = newState.day;
 			currEvent.eventIndex = m_eventIndex;
 			currEvent.batterCount = m_batterCount;
 			currEvent.inning = newState.inning;
