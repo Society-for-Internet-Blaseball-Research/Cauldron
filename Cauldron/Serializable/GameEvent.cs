@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cauldron.Serializable;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -76,8 +77,10 @@ namespace Cauldron
 		public int eventIndex { get; set; }
 		public int inning { get; set; }
 		public int outsBeforePlay { get; set; }
+		[DbNullValue("UNKNOWN")]
 		public string batterId { get; set; }
 		public string batterTeamId { get; set; }
+		[DbNullValue("UNKNOWN")]
 		public string pitcherId { get; set; }
 		public string pitcherTeamId { get; set; }
 		public float homeScore { get; set; }
@@ -85,6 +88,7 @@ namespace Cauldron
 		public int homeStrikeCount { get; set; }
 		public int awayStrikeCount { get; set; }
 		public int batterCount { get; set; }
+		[DbAlias("pitches")]
 		public List<char> pitchesList { get; set; }
 		public int totalStrikes { get; set; }
 		public int totalBalls { get; set; }
@@ -101,21 +105,29 @@ namespace Cauldron
 		public bool isDoublePlay { get; set; }
 		public bool isTriplePlay { get; set; }
 		public bool isWildPitch { get; set; }
+		[DbNullValue("")]
 		public string battedBallType { get; set; }
 		public bool isBunt { get; set; }
 		public int errorsOnPlay { get; set; }
 		public int batterBaseAfterPlay { get; set; }
+		[DbIgnore]
 		public List<GameEventBaseRunner> baseRunners { get; set; }
 		public bool isLastGameEvent { get; set; }
+		[DbNullValue("")]
 		public string additionalContext { get; set; }
 		public bool topOfInning { get; set; }
 		public List<string> eventText { get; set; }
+		[DbIgnore]
 		public bool isSteal { get; set; }
+		[DbIgnore]
 		public bool isWalk{ get; set; }
+		[DbIgnore]
 		public List<PlayerEvent> playerEvents { get; set; }
 		[JsonConverter(typeof(TimestampConverter))]
+		[DbAlias("perceived_at")]
 		public DateTime firstPerceivedAt { get; set; }
 		[JsonConverter(typeof(TimestampConverter))]
+		[DbIgnore]
 		public DateTime lastPerceivedAt { get; set; }
 
 		public int season { get; set; }
@@ -126,9 +138,14 @@ namespace Cauldron
 			return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";
 		}
 
+		// TODO: consider adding the error flags to the DB
+		[DbIgnore]
 		public bool parsingError { get; set; }
+		[DbIgnore]
 		public List<string> parsingErrorList { get; set; }
+		[DbIgnore]
 		public bool fixedError { get; set; }
+		[DbIgnore]
 		public List<string> fixedErrorList { get; set; }
 	}
 }

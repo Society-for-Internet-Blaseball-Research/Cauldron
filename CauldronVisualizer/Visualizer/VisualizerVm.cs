@@ -388,13 +388,16 @@ namespace CauldronVisualizer
 					{
 						string obj = await sr.ReadLineAsync();
 						Update u = JsonSerializer.Deserialize<Update>(obj, s_diskOptions);
-						foreach (var s in u.Schedule)
+						if (u.Schedule != null)
 						{
-							if (u.clientMeta != null)
+							foreach (var s in u.Schedule)
 							{
-								s.timestamp = u.clientMeta.timestamp;
+								if (u.clientMeta != null)
+								{
+									s.timestamp = u.clientMeta.timestamp;
+								}
+								GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
 							}
-							GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
 						}
 						if (m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
 						{
