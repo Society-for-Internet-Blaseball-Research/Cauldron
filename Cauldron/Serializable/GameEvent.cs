@@ -49,6 +49,7 @@ namespace Cauldron
 	/// </summary>
 	public class PlayerEvent
 	{
+		[DbNullValue("UNKNOWN")]
 		public string playerId { get; set; }
 		public string eventType { get; set; }
 	}
