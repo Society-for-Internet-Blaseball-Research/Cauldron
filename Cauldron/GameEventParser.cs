@@ -725,9 +725,6 @@ namespace Cauldron
 		/// </summary>
 		private void UpdateLineupInfo(Game newState)
 		{
-			// Always attribute the event to the last pitcher involved
-			m_currEvent.pitcherId = newState.PitcherId;
-
 			// Track first batter in each inning
 			if(CanStartInning(newState))
 			{
@@ -737,6 +734,11 @@ namespace Cauldron
 
 			// Don't trust the batter counts when we change innings
 			if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
+
+				// Always attribute the event to the last pitcher involved
+				// (but only if the half-inning didn't change, ugh)
+				m_currEvent.pitcherId = newState.PitcherId;
+
 				// Game updates have a batter count per team, so the lineup position is that % 9
 				if (newState.topOfInning)
 				{
