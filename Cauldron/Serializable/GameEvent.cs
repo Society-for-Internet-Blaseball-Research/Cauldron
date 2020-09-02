@@ -140,13 +140,9 @@ namespace Cauldron
 		}
 
 		// TODO: consider adding the error flags to the DB
-		[DbIgnore]
 		public bool parsingError { get; set; }
-		[DbIgnore]
 		public List<string> parsingErrorList { get; set; }
-		[DbIgnore]
 		public bool fixedError { get; set; }
-		[DbIgnore]
 		public List<string> fixedErrorList { get; set; }
 	}
 }
