@@ -789,6 +789,8 @@ namespace Cauldron
 		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ \w+)! Replaced by (\w+ \w+)");
 		private static Regex peanutRegex = new Regex(@".*er (\w+ \w+) swallowed.*had an? (\w+) reaction!");
 		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ \w+) is now up to bat\.");
+		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.*)");
+		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (\w+ \w+) is now .*");
 		private void UpdatePlayerEvents(Game newState)
 		{
 			var match = feedbackRegex.Match(newState.lastUpdate);
@@ -805,6 +807,55 @@ namespace Cauldron
 				newEvent.eventType = PlayerEventType.FEEDBACK;
 				TryPopulatePlayerId(newEvent, match.Groups[1].Value);
 				m_currEvent.playerEvents.Add(newEvent);
+			}
+
+			match = teamReverbRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				var teamName = match.Groups[2].Value;
+				var status = match.Groups[3].Value;
+
+				PlayerEvent e = new PlayerEvent();
+				if (newState.homeTeamNickname == teamName)
+				{
+					e.playerId = newState.homeTeam;
+				}
+				else if(newState.awayTeamNickname == teamName)
+				{
+					e.playerId = newState.awayTeam;
+				}
+				else
+				{
+					AddParsingError(m_currEvent, $"Couldn't find which team ({teamName}) is reverberating!");
+				}
+
+				switch (status)
+				{
+					case "control of their pitchers!":
+						e.eventType = PlayerEventType.REVERB_PITCHERS;
+						break;
+					case "control of their hitters!":
+						e.eventType = PlayerEventType.REVERB_HITTERS;
+						break;
+					case "control of several players!":
+						e.eventType = PlayerEventType.REVERB_SEVERAL;
+						break;
+					case "all control!":
+						e.eventType = PlayerEventType.REVERB_ALL;
+						break;
+				}
+
+				m_currEvent.playerEvents.Add(e);
+			}
+
+			match = playerReverbRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				var playerName = match.Groups[2].Value;
+				PlayerEvent e = new PlayerEvent();
+				e.eventType = PlayerEventType.REVERB_PLAYER;
+				TryPopulatePlayerId(e, playerName);
+				m_currEvent.playerEvents.Add(e);
 			}
 
 			match = incineRegex.Match(newState.lastUpdate);
