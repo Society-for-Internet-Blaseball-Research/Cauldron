@@ -632,6 +632,20 @@ namespace Cauldron
 				else if (!found && m_currEvent.outsOnPlay > 0)
 				{
 					// Fine, he was out
+					GameEventBaseRunner runner = new GameEventBaseRunner();
+					runner.runnerId = runnerId;
+					if (m_responsiblePitchers.ContainsKey(runnerId))
+					{
+						runner.responsiblePitcherId = m_responsiblePitchers[runnerId];
+					}
+					else
+					{
+						runner.responsiblePitcherId = "";
+						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
+					}
+					runner.baseBeforePlay = baseIndex + 1;
+					runner.baseAfterPlay = 0;
+					m_currEvent.baseRunners.Add(runner);
 				}
 				else if(found)
 				{
