@@ -1,4 +1,7 @@
-﻿using Cauldron;
+﻿using Amazon;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Cauldron;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -25,6 +28,9 @@ namespace CauldronVisualizer
 
 		private static JsonSerializerOptions s_diskOptions;
 		private static JsonSerializerOptions s_displayOptions;
+
+		IAmazonS3 m_s3client;
+
 
 		public ObservableCollectionEx<GameUpdateVm> GameUpdates { get; set; }
 
@@ -98,6 +104,8 @@ namespace CauldronVisualizer
 		public ICommand LoadUpdatesCommand => m_loadUpdatesCommand;
 		DelegateCommand m_loadUpdatesCommand;
 
+		public ICommand LoadUpdatesFromS3Command => m_loadUpdatesFromS3Command;
+		DelegateCommand m_loadUpdatesFromS3Command;
 		public ICommand LoadEventsCommand => m_loadEventsCommand;
 		DelegateCommand m_loadEventsCommand;
 
@@ -180,6 +188,7 @@ namespace CauldronVisualizer
 
 			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
 			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
+			m_loadUpdatesFromS3Command = new DelegateCommand(ChooseS3LogFile);
 			m_saveUpdatesCommand = new DelegateCommand(ChooseSaveUpdatesFile);
 			m_saveEventsCommand = new DelegateCommand(ChooseSaveEventsFile);
 
@@ -195,7 +204,11 @@ namespace CauldronVisualizer
 			LoadSaveEnabled = true;
 			EventsDisabled = false;
 			UpdatesDisabled = false;
+
+			m_s3client = new AmazonS3Client(Environment.GetEnvironmentVariable("AWS_KEY"), Environment.GetEnvironmentVariable("AWS_SECRET"), RegionEndpoint.USWest2);
 		}
+
+
 
 		/// <summary>
 		/// Build a custom CSV file for use on the Fourth Strike project
@@ -365,6 +378,14 @@ namespace CauldronVisualizer
 			}
 		}
 
+		public async void ChooseS3LogFile(object param)
+		{
+			LogWindowVm logVm = new LogWindowVm(m_s3client, this);
+			LogWindowView view = new LogWindowView();
+			view.DataContext = logVm;
+			view.Show();
+		}
+
 		public void ChooseSaveEventsFile(object param)
 		{
 			SaveFileDialog dialog = new SaveFileDialog();
@@ -372,6 +393,28 @@ namespace CauldronVisualizer
 			{
 				SaveEvents(dialog.FileName);
 			}
+		}
+
+		internal void ClearUpdates()
+		{
+			GameUpdates.Clear();
+			m_convertCommand.RaiseCanExecuteChanged();
+		}
+
+		internal void AddUpdate(Update u)
+		{
+			if (u.Schedule != null)
+			{
+				foreach (var s in u.Schedule)
+				{
+					if (u.clientMeta != null)
+					{
+						s.timestamp = u.clientMeta.timestamp;
+					}
+					GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
+				}
+			}
+			m_convertCommand.RaiseCanExecuteChanged();
 		}
 
 		internal async Task AsyncLoadUpdates(string file)
@@ -388,17 +431,9 @@ namespace CauldronVisualizer
 					{
 						string obj = await sr.ReadLineAsync();
 						Update u = JsonSerializer.Deserialize<Update>(obj, s_diskOptions);
-						if (u.Schedule != null)
-						{
-							foreach (var s in u.Schedule)
-							{
-								if (u.clientMeta != null)
-								{
-									s.timestamp = u.clientMeta.timestamp;
-								}
-								GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
-							}
-						}
+						
+						AddUpdate(u);
+
 						if (m_stopwatch.Elapsed > TimeSpan.FromSeconds(COUNT_DELAY))
 						{
 							OnPropertyChanged(nameof(GameUpdatesDelayedCount));

@@ -16,6 +16,12 @@
     <Compile Update="GameUpdates\GameUpdateView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Logs\LogItemView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Logs\LogWindowView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Visualizer\VisualizerView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -30,10 +36,19 @@
     <Page Update="GameUpdates\GameUpdateView.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Logs\LogItemView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Logs\LogWindowView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Resources.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Themes\Generic.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Visualizer\VisualizerView.xaml">

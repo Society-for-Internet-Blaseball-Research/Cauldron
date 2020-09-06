@@ -72,5 +72,9 @@
     <DataTemplate DataType="{x:Type local:GameEventVm}">
         <ge:GameEventView/>
     </DataTemplate>
-           
+
+    <DataTemplate DataType="{x:Type local:LogItemVm}">
+        <local:LogItemView/>
+    </DataTemplate>
+
 </ResourceDictionary>

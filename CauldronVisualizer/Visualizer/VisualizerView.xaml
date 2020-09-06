@@ -90,18 +90,27 @@
             >
             <Button
                 IsEnabled="{Binding LoadSaveEnabled}"
-                Content="Load Updates..."
+                Content="Load Updates from file..."
                 Height="30"
-                Width="200"
+                Width="140"
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding LoadUpdatesCommand}"
                 />
             <Button
                 IsEnabled="{Binding LoadSaveEnabled}"
                 Margin="10 0 0 0"
+                Content="Load Updates from S3..."
+                Height="30"
+                Width="140"
+                Style="{StaticResource BaseStyle}"
+                Command="{Binding LoadUpdatesFromS3Command}"
+                />
+            <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
+                Margin="10 0 0 0"
                 Content="Save Updates..."
                 Height="30"
-                Width="200"
+                Width="120"
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding SaveUpdatesCommand}"
                 />
@@ -143,7 +152,7 @@
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding SaveEventsCommand}"
                 />
-            <Button
+            <!--<Button
                 IsEnabled="{Binding LoadSaveEnabled}"
                 Margin="10 0 0 0"
                 Content="Export to CSV..."
@@ -152,7 +161,7 @@
                 Width="160"
                 Style="{StaticResource BaseStyle}"
                 Command="{Binding ExportToCsvCommand}"
-                />
+                />-->
         </StackPanel>
 
         <ListBox
