@@ -1,14 +1,23 @@
 # Cauldron
 Put in blaseball game update JSON, and pull out SIBR game event JSON
 
-Run from the command line:
+# CauldronCli
+Command-line frontend for the Cauldron library.
 
-	CauldronCli.exe [input file in newline-delimited JSON format] [output file in newline-delimited JSON format]
+	-i, --inputFile	: Single file to process (newline-delimited JSON)
+	--inputFolder	: Folder of files to process (newline-delimited JSON)
+	-o, --outputFile : Single file to write output to (newline-delimited JSON)
+	--outputFolder	 : Folder to output single-game files (newline-delimited JSON)
+	
+You must specify one input method and one output method.
 
-If the input JSON doesn't contain a full game from start to finish, resulting stats may be wonky.
+# CauldronVisualizer
+WPF frontend for the Cauldron library.
 
-## Unimplemented Fields
-
-## Partially implemented fields
-
-* `lineupPosition` is getting -1s sometimes
+* Load updates from .json
+* Load updates directly from S3 bucket
+* Save updates to .json
+* Convert updates to SIBR Game Events
+* Load events from .json
+* Save events to .json
+* Filter to a single game
