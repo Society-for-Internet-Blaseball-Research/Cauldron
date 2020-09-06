@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:CauldronVisualizer"
         Style="{StaticResource BaseStyle}"
         mc:Ignorable="d"
-        Title="LogWindowView" Height="450" Width="800">
+        Title="Load Logs from S3 Bucket" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>
@@ -30,6 +30,9 @@
             Content="Add Selected"
             Command="{Binding AddLogCommand}"
             />
+            <TextBlock
+                VerticalAlignment="Center"
+                Text="Season and Day are 1-indexed"/>
         </StackPanel>
 
         <TextBlock
