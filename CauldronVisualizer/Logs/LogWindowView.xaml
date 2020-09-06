@@ -32,7 +32,7 @@
             />
             <TextBlock
                 VerticalAlignment="Center"
-                Text="Season and Day are 1-indexed"/>
+                Text="Unlike the main view, Season and Day are 1-indexed"/>
         </StackPanel>
 
         <TextBlock

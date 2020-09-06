@@ -643,6 +643,12 @@ namespace Cauldron
 						runner.responsiblePitcherId = "";
 						AddParsingError(m_currEvent, $"Couldn't find responsible pitcher for runner {runnerId} in update '{newState.lastUpdate}'");
 					}
+
+					if (newState.lastUpdate.Contains("caught"))
+					{
+						runner.wasCaughtStealing = true;
+					}
+
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = 0;
 					m_currEvent.baseRunners.Add(runner);
