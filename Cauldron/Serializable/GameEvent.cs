@@ -36,28 +36,6 @@ namespace Cauldron
 		public static string HOME_RUN = "HOME_RUN";
 	}
 
-	public static class PlayerEventType
-	{
-		public static string INCINERATION = "INCINERATION";
-		public static string PEANUT_GOOD = "PEANUT_GOOD";
-		public static string PEANUT_BAD = "PEANUT_BAD";
-		public static string FEEDBACK = "FEEDBACK";
-		public static string REVERB_PITCHERS = "REVERB_PITCHERS";
-		public static string REVERB_HITTERS = "REVERB_HITTERS";
-		public static string REVERB_SEVERAL = "REVERB_SEVERAL";
-		public static string REVERB_ALL = "REVERB_ALL";
-		public static string REVERB_PLAYER = "REVERB_PLAYER";
-	}
-
-	/// <summary>
-	/// Player events
-	/// </summary>
-	public class PlayerEvent
-	{
-		[DbNullValue("UNKNOWN")]
-		public string playerId { get; set; }
-		public string eventType { get; set; }
-	}
 
 	/// <summary>
 	/// Serializable class following DB schema from SIBR for baserunning info
@@ -128,7 +106,7 @@ namespace Cauldron
 		[DbIgnore]
 		public bool isWalk{ get; set; }
 		[DbIgnore]
-		public List<PlayerEvent> playerEvents { get; set; }
+		public List<Outcome> outcomes { get; set; }
 		[JsonConverter(typeof(TimestampConverter))]
 		[DbAlias("perceived_at")]
 		public DateTime firstPerceivedAt { get; set; }

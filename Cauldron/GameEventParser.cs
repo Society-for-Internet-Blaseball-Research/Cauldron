@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Cauldron
 {
@@ -57,7 +61,10 @@ namespace Cauldron
 		GameEvent m_currEvent;
 
 		// Map of player IDs indexed by name; used in looking up players who were incinerated or ate a peanut
-		Dictionary<string, string> m_playerNameToId;
+		//Dictionary<string, string> m_playerNameToId;
+
+		HttpClient m_client;
+
 
 		public event EventHandler<GameCompleteEventArgs> GameComplete;
 		public bool IsGameComplete
@@ -71,7 +78,12 @@ namespace Cauldron
 
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
-			m_playerNameToId = new Dictionary<string, string>();
+			m_client = new HttpClient();
+			m_client.BaseAddress = new Uri("https://api.blaseball-reference.com/v1/");
+			m_client.DefaultRequestHeaders.Accept.Clear();
+			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+			//m_playerNameToId = new Dictionary<string, string>();
 			m_homePlayerLineup = new string[10];
 			m_awayPlayerLineup = new string[10];
 			m_oldState = initState;
@@ -191,7 +203,7 @@ namespace Cauldron
 		{
 			if(id != null && name != null && id != "" && name != "")
 			{
-				m_playerNameToId[name] = id;
+				//m_playerNameToId[name] = id;
 			}
 		}
 
@@ -245,7 +257,7 @@ namespace Cauldron
 
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
-			currEvent.playerEvents = new List<PlayerEvent>();
+			currEvent.outcomes = new List<Outcome>();
 
 			// Might be incorrect
 			currEvent.totalStrikes = newState.atBatStrikes;
@@ -797,36 +809,70 @@ namespace Cauldron
 		}
 
 
-		private void TryPopulatePlayerId(PlayerEvent p, string name)
+		private async Task<string> TryGetPlayerId(string name)
 		{
-			string id;
-			if (m_playerNameToId.TryGetValue(name, out id))
+			HttpResponseMessage response = await m_client.GetAsync($"playerIdsByName?name={HttpUtility.UrlEncode(name)}");
+
+			if (response.IsSuccessStatusCode)
 			{
-				p.playerId = id;
+				string strResponse = await response.Content.ReadAsStringAsync();
+				var list = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, string>>>(strResponse);
+
+				if (list.Count() > 0)
+					return list.First()["player_id"];
+				else
+					return "UNKNOWN";
+			}
+			else
+			{
+				return "UNKNOWN";
 			}
 		}
 
-		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ \w+)! Replaced by (\w+ \w+)");
-		private static Regex peanutRegex = new Regex(@".*er (\w+ \w+) swallowed.*had an? (\w+) reaction!");
-		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ \w+) is now up to bat\.");
-		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.*)");
-		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (\w+ \w+) is now .*");
-		private void UpdatePlayerEvents(Game newState)
+		private async void TryPopulatePlayerId(Outcome o, string name)
 		{
-			var match = feedbackRegex.Match(newState.lastUpdate);
+			o.entityId = await TryGetPlayerId(name);
+		}
+
+		private void CreateAndAddPlayerOutcome(string text, string type, string playerName)
+		{
+			Outcome o = new Outcome(text);
+			o.eventType = OutcomeType.BLOOD_DRAIN_SIPHONER;
+			TryPopulatePlayerId(o, playerName);
+			m_currEvent.outcomes.Add(o);
+		}
+
+		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ ?\w+)! Replaced by (\w+ ?\w+)");
+		private static Regex peanutRegex = new Regex(@".*er (\w+ ?\w+) swallowed.*had an? (\w+) reaction!");
+		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ ?\w+) is now up to bat\.");
+		private static Regex feedbackBlockedRegex = new Regex(@"Reality begins to flicker...but (\w+ ?\w+) resists! (\w+ ?\w+) is affect");
+		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.*)");
+		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (\w+ ?\w+) is now .*");
+		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (\w+ ?\w+) siphoned some of (\w+ ?\w+)'s.*");
+		private void UpdateOutcomes(Game newState)
+		{
+			var match = blooddrainRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_SIPHONER, match.Groups[1].Value);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_VICTIM, match.Groups[2].Value);
+			}
+
+			match = feedbackRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
 				// Old player
-				PlayerEvent oldEvent = new PlayerEvent();
-				oldEvent.eventType = PlayerEventType.FEEDBACK;
-				oldEvent.playerId = m_currEvent.batterId;
-				m_currEvent.playerEvents.Add(oldEvent);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, m_currEvent.batterId);
 
 				// New player
-				PlayerEvent newEvent = new PlayerEvent();
-				newEvent.eventType = PlayerEventType.FEEDBACK;
-				TryPopulatePlayerId(newEvent, match.Groups[1].Value);
-				m_currEvent.playerEvents.Add(newEvent);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
+			}
+
+			match = feedbackBlockedRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[1].Value);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[2].Value);
 			}
 
 			match = teamReverbRegex.Match(newState.lastUpdate);
@@ -835,14 +881,14 @@ namespace Cauldron
 				var teamName = match.Groups[2].Value;
 				var status = match.Groups[3].Value;
 
-				PlayerEvent e = new PlayerEvent();
+				Outcome e = new Outcome(newState.lastUpdate);
 				if (newState.homeTeamNickname == teamName)
 				{
-					e.playerId = newState.homeTeam;
+					e.entityId = newState.homeTeam;
 				}
 				else if(newState.awayTeamNickname == teamName)
 				{
-					e.playerId = newState.awayTeam;
+					e.entityId = newState.awayTeam;
 				}
 				else
 				{
@@ -852,39 +898,32 @@ namespace Cauldron
 				switch (status)
 				{
 					case "control of their pitchers!":
-						e.eventType = PlayerEventType.REVERB_PITCHERS;
+						e.eventType = OutcomeType.REVERB_PITCHERS;
 						break;
 					case "control of their hitters!":
-						e.eventType = PlayerEventType.REVERB_HITTERS;
+						e.eventType = OutcomeType.REVERB_HITTERS;
 						break;
 					case "control of several players!":
-						e.eventType = PlayerEventType.REVERB_SEVERAL;
+						e.eventType = OutcomeType.REVERB_SEVERAL;
 						break;
 					case "all control!":
-						e.eventType = PlayerEventType.REVERB_ALL;
+						e.eventType = OutcomeType.REVERB_ALL;
 						break;
 				}
 
-				m_currEvent.playerEvents.Add(e);
+				m_currEvent.outcomes.Add(e);
 			}
 
 			match = playerReverbRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
-				var playerName = match.Groups[2].Value;
-				PlayerEvent e = new PlayerEvent();
-				e.eventType = PlayerEventType.REVERB_PLAYER;
-				TryPopulatePlayerId(e, playerName);
-				m_currEvent.playerEvents.Add(e);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.REVERB_PLAYER, match.Groups[2].Value);
 			}
 
 			match = incineRegex.Match(newState.lastUpdate);
 			if (match.Success)
 			{
-				PlayerEvent newEvent = new PlayerEvent();
-				newEvent.eventType = PlayerEventType.INCINERATION;
-				TryPopulatePlayerId(newEvent, match.Groups[1].Value);
-				m_currEvent.playerEvents.Add(newEvent);
+				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.INCINERATION, match.Groups[1].Value);
 			}
 
 			match = peanutRegex.Match(newState.lastUpdate);
@@ -894,17 +933,11 @@ namespace Cauldron
 
 				if (match.Groups[2].Value == "yummy")
 				{
-					PlayerEvent newEvent = new PlayerEvent();
-					newEvent.eventType = PlayerEventType.PEANUT_GOOD;
-					TryPopulatePlayerId(newEvent, playerName);
-					m_currEvent.playerEvents.Add(newEvent);
+					CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_GOOD, playerName);
 				}
 				else if (match.Groups[2].Value == "allergic")
 				{
-					PlayerEvent newEvent = new PlayerEvent();
-					newEvent.eventType = PlayerEventType.PEANUT_BAD;
-					TryPopulatePlayerId(newEvent, playerName);
-					m_currEvent.playerEvents.Add(newEvent);
+					CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_BAD, playerName);
 				}
 			}
 
@@ -1001,7 +1034,7 @@ namespace Cauldron
 			// Call after UpdateOuts
 			UpdateBaserunning(newState);
 
-			UpdatePlayerEvents(newState);
+			UpdateOutcomes(newState);
 
 			// Unknown or not currently handled event
 			if(m_currEvent.eventType == null)

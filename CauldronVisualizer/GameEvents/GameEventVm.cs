@@ -75,7 +75,7 @@ namespace CauldronVisualizer
 		{
 			get
 			{
-				return m_event.playerEvents.Count(x => x.eventType == PlayerEventType.INCINERATION) > 0;
+				return m_event.outcomes.Count(x => x.eventType == OutcomeType.INCINERATION) > 0;
 			}
 		}
 
@@ -83,7 +83,7 @@ namespace CauldronVisualizer
 		{
 			get
 			{
-				return m_event.playerEvents.Count(x => x.eventType == PlayerEventType.PEANUT_GOOD || x.eventType == PlayerEventType.PEANUT_BAD) > 0;
+				return m_event.outcomes.Count(x => x.eventType == OutcomeType.PEANUT_GOOD || x.eventType == OutcomeType.PEANUT_BAD) > 0;
 			}
 		}
 
