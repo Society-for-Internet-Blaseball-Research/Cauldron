@@ -281,7 +281,7 @@ namespace CauldronVisualizer
 				ListObjectsRequest request = new ListObjectsRequest
 				{
 					BucketName = BUCKET_NAME,
-					MaxKeys = 2,
+					MaxKeys = 500,
 					Prefix = "blaseball-log-"
 				};
 
