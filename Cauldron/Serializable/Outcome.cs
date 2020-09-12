@@ -35,7 +35,6 @@ namespace Cauldron
 		[DbNullValue("UNKNOWN")]
 		public string entityId { get; set; }
 		public string eventType { get; set; }
-		[DbIgnore]
 		public string originalText { get; set; }
 	}
 }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Cauldron
 {
@@ -54,7 +55,7 @@ namespace Cauldron
 		/// <param name="game">update object</param>
 		/// <param name="timestamp">time this object was perceived</param>
 		/// <param name="complete">event handler to register for game completion events</param>
-		public void ProcessGameObject(Game game, DateTime timestamp)
+		public async Task ProcessGameObject(Game game, DateTime timestamp)
 		{
 
 			// Add new games if needed
@@ -70,11 +71,11 @@ namespace Cauldron
 			{
 				// Update a current game
 				GameEventParser parser = m_trackedGames[game.gameId];
-				parser.ParseGameUpdate(game, timestamp);
+				await parser.ParseGameUpdate(game, timestamp);
 			}
 		}
 
-		private void ProcessUpdateString(string obj)
+		private async Task ProcessUpdateString(string obj)
 		{
 			Update update = null;
 			try
@@ -100,12 +101,12 @@ namespace Cauldron
 						timestamp = TimestampConverter.unixEpoch;
 					}
 
-					ProcessGameObject(game, timestamp.Value);
+					await ProcessGameObject(game, timestamp.Value);
 				}
 			}
 		}
 
-		public void Process(StreamReader newlineDelimitedJson)
+		public async Task Process(StreamReader newlineDelimitedJson)
 		{
 			if (GameComplete == null)
 				throw new InvalidOperationException("Please listen for the GameComplete event before calling Process()");
@@ -113,17 +114,17 @@ namespace Cauldron
 			{
 				string obj = newlineDelimitedJson.ReadLine();
 
-				ProcessUpdateString(obj);
+				await ProcessUpdateString(obj);
 			}
 		}
 
-		public void Process(string newlineDelimitedJson)
+		public async Task Process(string newlineDelimitedJson)
 		{
 			StringReader sr = new StringReader(newlineDelimitedJson);
 			string line = sr.ReadLine();
 			while (line != null)
 			{
-				ProcessUpdateString(line);
+				await ProcessUpdateString(line);
 				line = sr.ReadLine();
 			}
 		}

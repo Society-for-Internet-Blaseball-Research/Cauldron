@@ -12,7 +12,10 @@ namespace Cauldron
 		public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 		{
 			long milliseconds = reader.GetInt64();
-			return unixEpoch.AddMilliseconds(milliseconds);
+			if (milliseconds > 0)
+				return unixEpoch.AddMilliseconds(milliseconds);
+			else
+				return unixEpoch;
 		}
 
 		public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)

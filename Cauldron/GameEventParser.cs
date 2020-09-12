@@ -829,50 +829,53 @@ namespace Cauldron
 			}
 		}
 
-		private async void TryPopulatePlayerId(Outcome o, string name)
+		private async Task TryPopulatePlayerId(Outcome o, string name)
 		{
 			o.entityId = await TryGetPlayerId(name);
 		}
 
-		private void CreateAndAddPlayerOutcome(string text, string type, string playerName)
+		private async Task CreateAndAddPlayerOutcome(string text, string type, string playerName)
 		{
 			Outcome o = new Outcome(text);
-			o.eventType = OutcomeType.BLOOD_DRAIN_SIPHONER;
-			TryPopulatePlayerId(o, playerName);
+			o.eventType = type;
+			await TryPopulatePlayerId(o, playerName);
 			m_currEvent.outcomes.Add(o);
 		}
 
-		private static Regex incineRegex = new Regex(@".*incinerated.*er (\w+ ?\w+)! Replaced by (\w+ ?\w+)");
-		private static Regex peanutRegex = new Regex(@".*er (\w+ ?\w+) swallowed.*had an? (\w+) reaction!");
+		private static Regex incineRegex = new Regex(@".*incinerated.*(pitch|hitt)er (\w+ ?\w+)! Replaced by (\w+ ?\w+)");
+		private static Regex peanutRegex = new Regex(@".*(pitch|hitt)er (\w+ ?\w+) swallowed.*had an? (\w+) reaction!");
 		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ ?\w+) is now up to bat\.");
 		private static Regex feedbackBlockedRegex = new Regex(@"Reality begins to flicker...but (\w+ ?\w+) resists! (\w+ ?\w+) is affect");
 		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.*)");
 		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (\w+ ?\w+) is now .*");
 		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (\w+ ?\w+) siphoned some of (\w+ ?\w+)'s.*");
-		private void UpdateOutcomes(Game newState)
+		private async Task UpdateOutcomes(Game newState)
 		{
 			var match = blooddrainRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_SIPHONER, match.Groups[1].Value);
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_VICTIM, match.Groups[2].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_SIPHONER, match.Groups[1].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_VICTIM, match.Groups[2].Value);
 			}
 
 			match = feedbackRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
 				// Old player
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, m_currEvent.batterId);
+				Outcome o = new Outcome(newState.lastUpdate);
+				o.eventType = OutcomeType.FEEDBACK;
+				o.entityId = m_currEvent.batterId;
+				m_currEvent.outcomes.Add(o);
 
 				// New player
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
 			}
 
 			match = feedbackBlockedRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[1].Value);
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[2].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[1].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[2].Value);
 			}
 
 			match = teamReverbRegex.Match(newState.lastUpdate);
@@ -917,30 +920,29 @@ namespace Cauldron
 			match = playerReverbRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.REVERB_PLAYER, match.Groups[2].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.REVERB_PLAYER, match.Groups[2].Value);
 			}
 
 			match = incineRegex.Match(newState.lastUpdate);
 			if (match.Success)
 			{
-				CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.INCINERATION, match.Groups[1].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.INCINERATION, match.Groups[2].Value);
 			}
 
 			match = peanutRegex.Match(newState.lastUpdate);
 			if (match.Success)
 			{
-				string playerName = match.Groups[1].Value;
+				string playerName = match.Groups[2].Value;
 
-				if (match.Groups[2].Value == "yummy")
+				if (match.Groups[3].Value == "yummy")
 				{
-					CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_GOOD, playerName);
+					await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_GOOD, playerName);
 				}
-				else if (match.Groups[2].Value == "allergic")
+				else if (match.Groups[3].Value == "allergic")
 				{
-					CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_BAD, playerName);
+					await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_BAD, playerName);
 				}
 			}
-
 		}
 
 		/// <summary>
@@ -979,7 +981,7 @@ namespace Cauldron
 		/// <param name="newState"></param>
 		/// <param name="timeStamp"></param>
 		/// <returns></returns>
-		public void ParseGameUpdate(Game newState, DateTime timeStamp)
+		public async Task ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
 			if(IsGameComplete)
 			{
@@ -1034,7 +1036,7 @@ namespace Cauldron
 			// Call after UpdateOuts
 			UpdateBaserunning(newState);
 
-			UpdateOutcomes(newState);
+			await UpdateOutcomes(newState);
 
 			// Unknown or not currently handled event
 			if(m_currEvent.eventType == null)
