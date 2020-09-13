@@ -57,6 +57,11 @@ namespace Cauldron
 		/// <param name="complete">event handler to register for game completion events</param>
 		public async Task ProcessGameObject(Game game, DateTime timestamp)
 		{
+			// If timestamp is missing or stupid, look it up in our list of known bummers
+			if (timestamp == null || timestamp == TimestampConverter.unixEpoch || timestamp == DateTime.MinValue)
+			{
+				timestamp = GetKnownBummerTimestamp(game.season, game.day);
+			}
 
 			// Add new games if needed
 			if (!m_trackedGames.ContainsKey(game.gameId))
@@ -73,6 +78,25 @@ namespace Cauldron
 				GameEventParser parser = m_trackedGames[game.gameId];
 				await parser.ParseGameUpdate(game, timestamp);
 			}
+		}
+
+		private DateTime GetKnownBummerTimestamp(int season, int day)
+		{
+			switch(season)
+			{
+				case 3:
+					{
+						switch(day)
+						{
+							case 71: return new DateTime(2020, 8, 28, 1, 0, 0);
+							case 72: return new DateTime(2020, 8, 28, 2, 0, 0);
+						}
+						break;
+					}
+					
+			}
+
+			return TimestampConverter.unixEpoch;
 		}
 
 		private async Task ProcessUpdateString(string obj)
@@ -94,12 +118,6 @@ namespace Cauldron
 				foreach (var game in update.Schedule)
 				{
 					var timestamp = update?.clientMeta?.timestamp;
-
-					// If timestamp is missing, just set to unix time 0
-					if (timestamp == null)
-					{
-						timestamp = TimestampConverter.unixEpoch;
-					}
 
 					await ProcessGameObject(game, timestamp.Value);
 				}
