@@ -274,7 +274,7 @@ namespace CauldronVisualizer
 			GameEvents.SupressNotification = true;
 			foreach (GameUpdateVm vm in m_updatesCv)
 			{
-				processor.ProcessGameObject(vm.Update, vm.Update.timestamp);
+				await processor.ProcessGameObject(vm.Update, vm.Update.timestamp);
 			}
 			GameEvents.SupressNotification = false;
 		}
@@ -290,9 +290,9 @@ namespace CauldronVisualizer
 			EventsDisabled = false;
 		}
 
-		private void ConvertUpdates(object obj)
+		private async void ConvertUpdates(object obj)
 		{
-			ConvertUpdates();
+			await ConvertUpdates();
 		}
 
 		public void BuildTeamLookup()
@@ -350,13 +350,13 @@ namespace CauldronVisualizer
 			m_convertCommand.RaiseCanExecuteChanged();
 		}
 
-		public void ChooseLoadUpdateFile(object param)
+		public async void ChooseLoadUpdateFile(object param)
 		{
 			// TODO: not great for non windows
 			OpenFileDialog dialog = new OpenFileDialog();
 			if(dialog.ShowDialog() == true)
 			{
-				LoadUpdates(dialog.FileName);
+				await LoadUpdates(dialog.FileName);
 			}
 		}
 
@@ -369,16 +369,16 @@ namespace CauldronVisualizer
 			}
 		}
 
-		public void ChooseLoadEventsFile(object param)
+		public async void ChooseLoadEventsFile(object param)
 		{
 			OpenFileDialog dialog = new OpenFileDialog();
 			if (dialog.ShowDialog() == true)
 			{
-				LoadEvents(dialog.FileName);
+				await LoadEvents(dialog.FileName);
 			}
 		}
 
-		public async void ChooseS3LogFile(object param)
+		public void ChooseS3LogFile(object param)
 		{
 			LogWindowVm logVm = new LogWindowVm(m_s3client, this);
 			LogWindowView view = new LogWindowView();
@@ -550,7 +550,7 @@ namespace CauldronVisualizer
 		/// <summary>
 		/// TODO: Actually pick the files to load from
 		/// </summary>
-		public async void Load()
+		public void Load()
 		{
 			BuildTeamLookup();
 

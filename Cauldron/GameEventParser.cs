@@ -454,7 +454,7 @@ namespace Cauldron
 			else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
 			{
 				m_currEvent.basesHit = 4;
-				m_currEvent.batterBaseAfterPlay = 4;
+				m_currEvent.batterBaseAfterPlay = BASE_RUNNER_SCORED;
 				m_currEvent.eventType = GameEventType.HOME_RUN;
 				m_currEvent.battedBallType = BattedBallType.FLY;
 			}
@@ -507,6 +507,9 @@ namespace Cauldron
 			}
 		}
 
+
+		private const int BASE_RUNNER_SCORED = 99;
+		private const int BASE_RUNNER_OUT = 0;
 		/// <summary>
 		/// Update stuff around baserunning
 		/// </summary>
@@ -634,7 +637,7 @@ namespace Cauldron
 					}
 
 					runner.baseBeforePlay = baseIndex + 1;
-					runner.baseAfterPlay = 4;
+					runner.baseAfterPlay = BASE_RUNNER_SCORED;
 					if (newState.lastUpdate.Contains("steals"))
 					{
 						runner.wasBaseStolen = true;
@@ -662,7 +665,7 @@ namespace Cauldron
 					}
 
 					runner.baseBeforePlay = baseIndex + 1;
-					runner.baseAfterPlay = 0;
+					runner.baseAfterPlay = BASE_RUNNER_OUT;
 					m_currEvent.baseRunners.Add(runner);
 				}
 				else if(found)
@@ -703,7 +706,7 @@ namespace Cauldron
 				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
-				runner.baseAfterPlay = 4;
+				runner.baseAfterPlay = BASE_RUNNER_SCORED;
 				m_currEvent.baseRunners.Add(runner);
 			}
 
@@ -729,7 +732,7 @@ namespace Cauldron
 								m_currEvent.eventType = GameEventType.TRIPLE;
 								m_currEvent.basesHit = 3;
 								break;
-							case 4:
+							case BASE_RUNNER_SCORED:
 								m_currEvent.eventType = GameEventType.HOME_RUN;
 								m_currEvent.basesHit = 4;
 								break;
@@ -842,13 +845,13 @@ namespace Cauldron
 			m_currEvent.outcomes.Add(o);
 		}
 
-		private static Regex incineRegex = new Regex(@".*incinerated.*(pitch|hitt)er (\w+ ?\w+)! Replaced by (\w+ ?\w+)");
-		private static Regex peanutRegex = new Regex(@".*(pitch|hitt)er (\w+ ?\w+) swallowed.*had an? (\w+) reaction!");
-		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (\w+ ?\w+) is now up to bat\.");
-		private static Regex feedbackBlockedRegex = new Regex(@"Reality begins to flicker...but (\w+ ?\w+) resists! (\w+ ?\w+) is affect");
-		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.*)");
-		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (\w+ ?\w+) is now .*");
-		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (\w+ ?\w+) siphoned some of (\w+ ?\w+)'s.*");
+		private static Regex incineRegex = new Regex(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)");
+		private static Regex peanutRegex = new Regex(@".*(pitch|hitt)er (.+) swallowed.*had an? (\w+) reaction!");
+		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (.+) is now up to bat\.");
+		private static Regex feedbackBlockedRegex = new Regex(@"Reality begins to flicker...but (.+) resists! (.+) is affect");
+		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.+)");
+		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (.+) is now .*");
+		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*");
 		private async Task UpdateOutcomes(Game newState)
 		{
 			var match = blooddrainRegex.Match(newState.lastUpdate);
