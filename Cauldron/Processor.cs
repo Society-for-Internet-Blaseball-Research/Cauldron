@@ -55,12 +55,17 @@ namespace Cauldron
 		/// <param name="game">update object</param>
 		/// <param name="timestamp">time this object was perceived</param>
 		/// <param name="complete">event handler to register for game completion events</param>
-		public async Task ProcessGameObject(Game game, DateTime timestamp)
+		public async Task ProcessGameObject(Game game, DateTime? inTimestamp)
 		{
+			DateTime timestamp;
 			// If timestamp is missing or stupid, look it up in our list of known bummers
-			if (timestamp == null || timestamp == TimestampConverter.unixEpoch || timestamp == DateTime.MinValue)
+			if (inTimestamp == null || inTimestamp == TimestampConverter.unixEpoch || inTimestamp == DateTime.MinValue)
 			{
 				timestamp = GetKnownBummerTimestamp(game.season, game.day);
+			}
+			else
+			{
+				timestamp = inTimestamp.Value;
 			}
 
 			// Add new games if needed
@@ -119,7 +124,7 @@ namespace Cauldron
 				{
 					var timestamp = update?.clientMeta?.timestamp;
 
-					await ProcessGameObject(game, timestamp.Value);
+					await ProcessGameObject(game, timestamp);
 				}
 			}
 		}
