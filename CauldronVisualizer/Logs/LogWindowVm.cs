@@ -232,7 +232,7 @@ namespace CauldronVisualizer
 					endSeason = lastGame.season;
 					endDay = lastGame.day;
 				}
-				catch (Exception ex)
+				catch (Exception)
 				{
 					// Ignore it
 				}

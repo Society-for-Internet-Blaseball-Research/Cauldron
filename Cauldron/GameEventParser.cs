@@ -248,7 +248,6 @@ namespace Cauldron
 			currEvent.isWildPitch = false;
 			currEvent.isBunt = false;
 			currEvent.errorsOnPlay = 0;
-			currEvent.isSacrificeFly = false; // I think we can't tell this
 
 			currEvent.batterId = newState.BatterId;
 			currEvent.batterTeamId = newState.BatterTeamId;
@@ -296,6 +295,10 @@ namespace Cauldron
 					m_currEvent.eventType = GameEventType.WALK;
 					m_currEvent.isWalk = true;
 					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
+				}
+				else if (newState.lastUpdate.Contains("with a pitch!"))
+				{
+					m_currEvent.eventType = GameEventType.HIT_BY_PITCH;
 				}
 
 			}
@@ -406,6 +409,10 @@ namespace Cauldron
 				{
 					m_currEvent.eventType = GameEventType.STRIKEOUT;
 				}
+				else if(newState.lastUpdate.Contains("sacrifice"))
+				{
+					m_currEvent.eventType = GameEventType.SACRIFICE;
+				}
 				else
 				{
 					m_currEvent.eventType = GameEventType.OUT;
@@ -475,6 +482,10 @@ namespace Cauldron
 		private void UpdateFielding(Game newState)
 		{
 			// Sacrifice outs
+			if(newState.lastUpdate.Contains("sacrifice fly"))
+			{
+				m_currEvent.isSacrificeFly = true;
+			}
 			if (newState.lastUpdate.Contains("sacrifice"))
 			{
 				m_currEvent.isSacrificeHit = true;
@@ -852,9 +863,17 @@ namespace Cauldron
 		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.+)");
 		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (.+) is now .*");
 		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*");
+		private static Regex beanRegex = new Regex(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!");
 		private async Task UpdateOutcomes(Game newState)
 		{
-			var match = blooddrainRegex.Match(newState.lastUpdate);
+			var match = beanRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BEANED_PITCHER, match.Groups[1].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BEANED_HITTER, match.Groups[2].Value);
+			}
+
+			match = blooddrainRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
 				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_SIPHONER, match.Groups[1].Value);

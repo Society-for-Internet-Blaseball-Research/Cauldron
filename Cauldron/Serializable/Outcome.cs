@@ -20,6 +20,8 @@ namespace Cauldron
 		public static string REVERB_PLAYER = "REVERB_PLAYER";
 		public static string BLOOD_DRAIN_VICTIM = "BLOOD_DRAIN_VICTIM";
 		public static string BLOOD_DRAIN_SIPHONER = "BLOOD_DRAIN_SIPHONER";
+		public static string BEANED_PITCHER = "BEANED_PITCHER";
+		public static string BEANED_HITTER = "BEANED_HITTER";
 	}
 
 	/// <summary>

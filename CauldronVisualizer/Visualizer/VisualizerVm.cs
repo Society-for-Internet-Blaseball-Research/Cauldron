@@ -514,7 +514,7 @@ namespace CauldronVisualizer
 
 				GameEvents.SupressNotification = false;
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 				MessageBox.Show("Something invalid happened.", "BLASPHEMY");
 			}
