@@ -22,6 +22,8 @@ namespace Cauldron
 		public static string BLOOD_DRAIN_SIPHONER = "BLOOD_DRAIN_SIPHONER";
 		public static string BEANED_PITCHER = "BEANED_PITCHER";
 		public static string BEANED_HITTER = "BEANED_HITTER";
+		public static string DEBT_PAID = "DEBT_PAID";
+		public static string UNSTABLE_CHAINED = "UNSTABLE_CHAINED";
 	}
 
 	/// <summary>

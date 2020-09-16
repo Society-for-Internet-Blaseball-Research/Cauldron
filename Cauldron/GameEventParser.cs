@@ -486,7 +486,7 @@ namespace Cauldron
 			{
 				m_currEvent.isSacrificeFly = true;
 			}
-			if (newState.lastUpdate.Contains("sacrifice"))
+			else if (newState.lastUpdate.Contains("sacrifice"))
 			{
 				m_currEvent.isSacrificeHit = true;
 			}
@@ -856,6 +856,7 @@ namespace Cauldron
 			m_currEvent.outcomes.Add(o);
 		}
 
+		private static Regex debtRegex = new Regex(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!");
 		private static Regex incineRegex = new Regex(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)");
 		private static Regex peanutRegex = new Regex(@".*(pitch|hitt)er (.+) swallowed.*had an? (\w+) reaction!");
 		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (.+) is now up to bat\.");
@@ -866,7 +867,14 @@ namespace Cauldron
 		private static Regex beanRegex = new Regex(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!");
 		private async Task UpdateOutcomes(Game newState)
 		{
-			var match = beanRegex.Match(newState.lastUpdate);
+			var match = debtRegex.Match(newState.lastUpdate);
+			if(match.Success)
+			{
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.DEBT_PAID, match.Groups[2].Value);
+				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.UNSTABLE_CHAINED, match.Groups[6].Value);
+			}
+
+			match = beanRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
 				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BEANED_PITCHER, match.Groups[1].Value);
@@ -1082,7 +1090,12 @@ namespace Cauldron
 
 			// If we had outs or hits or a walk or a steal, emit
 			// OR IF THE GAME IS OVER, duh
-			if(m_currEvent.outsOnPlay > 0 || m_currEvent.basesHit > 0 || m_currEvent.isSteal || m_currEvent.isWalk || m_currEvent.isLastGameEvent)
+			if(m_currEvent.outsOnPlay > 0 
+				|| m_currEvent.basesHit > 0 
+				|| m_currEvent.isSteal 
+				|| m_currEvent.isWalk 
+				|| m_currEvent.isLastGameEvent
+				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH)
 			{
 				GameEvent emitted = m_currEvent;
 				m_eventIndex++;
