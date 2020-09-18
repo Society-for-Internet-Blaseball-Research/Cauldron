@@ -24,8 +24,6 @@ namespace Cauldron
 
 	/// <summary>
 	/// Basic parser that takes Game json updates and emits GameEvent json objects
-	/// PLEASE NOTE this is probably wrong; I'm currently emitting one GameEvent per game update but
-	/// ultimately we want a Retrosheet-style condensed description of the whole "play" as a single GameEvent
 	/// </summary>
 	public class GameEventParser
 	{
@@ -82,6 +80,8 @@ namespace Cauldron
 			m_client.BaseAddress = new Uri("https://api.blaseball-reference.com/v1/");
 			m_client.DefaultRequestHeaders.Accept.Clear();
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+			SetupOutcomeMatchers();
 
 			//m_playerNameToId = new Dictionary<string, string>();
 			m_homePlayerLineup = new string[10];
@@ -823,72 +823,102 @@ namespace Cauldron
 		}
 
 
-		private async Task<string> TryGetPlayerId(string name)
+
+		
+		class OutcomeMatcher
 		{
-			HttpResponseMessage response = await m_client.GetAsync($"playerIdsByName?name={HttpUtility.UrlEncode(name)}");
+			Regex m_regex;
+			IList<(string, int)> m_playerOutcomes;
 
-			if (response.IsSuccessStatusCode)
+			public OutcomeMatcher(string r, IList<(string, int)> p)
 			{
-				string strResponse = await response.Content.ReadAsStringAsync();
-				var list = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, string>>>(strResponse);
+				m_regex = new Regex(r);
+				m_playerOutcomes = p;
+			}
 
-				if (list.Count() > 0)
-					return list.First()["player_id"];
+			private static async Task<string> TryGetPlayerId(HttpClient client, string name)
+			{
+				HttpResponseMessage response = await client.GetAsync($"playerIdsByName?name={HttpUtility.UrlEncode(name)}");
+
+				if (response.IsSuccessStatusCode)
+				{
+					string strResponse = await response.Content.ReadAsStringAsync();
+					var list = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, string>>>(strResponse);
+
+					if (list.Count() > 0)
+						return list.First()["player_id"];
+					else
+						return "UNKNOWN";
+				}
 				else
+				{
 					return "UNKNOWN";
+				}
 			}
-			else
+
+			private static async Task TryPopulatePlayerId(HttpClient client, Outcome o, string name)
 			{
-				return "UNKNOWN";
+				o.entityId = await TryGetPlayerId(client, name);
+			}
+			public static async Task CreateAndAddPlayerOutcome(HttpClient client, GameEvent ev, string text, string type, string playerName)
+			{
+				Outcome o = new Outcome(text);
+				o.eventType = type;
+				await TryPopulatePlayerId(client, o, playerName);
+				ev.outcomes.Add(o);
+			}
+
+			public async Task Process(HttpClient client, GameEvent ev, string update)
+			{
+				var match = m_regex.Match(update);
+				if(match.Success)
+				{
+					foreach(var kvp in m_playerOutcomes)
+					{
+						await CreateAndAddPlayerOutcome(client, ev, update, kvp.Item1, match.Groups[kvp.Item2].Value);
+					}
+				}
 			}
 		}
 
-		private async Task TryPopulatePlayerId(Outcome o, string name)
-		{
-			o.entityId = await TryGetPlayerId(name);
-		}
-
-		private async Task CreateAndAddPlayerOutcome(string text, string type, string playerName)
-		{
-			Outcome o = new Outcome(text);
-			o.eventType = type;
-			await TryPopulatePlayerId(o, playerName);
-			m_currEvent.outcomes.Add(o);
-		}
-
-		private static Regex debtRegex = new Regex(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!");
-		private static Regex incineRegex = new Regex(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)");
-		private static Regex peanutRegex = new Regex(@".*(pitch|hitt)er (.+) swallowed.*had an? (\w+) reaction!");
 		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (.+) is now up to bat\.");
-		private static Regex feedbackBlockedRegex = new Regex(@"Reality begins to flicker...but (.+) resists! (.+) is affect");
 		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.+)");
-		private static Regex playerReverbRegex = new Regex(@"Reverberations are at (\w+) levels! (.+) is now .*");
-		private static Regex blooddrainRegex = new Regex(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*");
-		private static Regex beanRegex = new Regex(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!");
+
+		private List<OutcomeMatcher> m_outcomeMatchers;
+
+		private void SetupOutcomeMatchers()
+		{
+			m_outcomeMatchers = new List<OutcomeMatcher>();
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
+				new List<(string, int)>() { ( OutcomeType.DEBT_PAID, 2 ), ( OutcomeType.UNSTABLE_CHAINED, 6 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
+				new List<(string, int)>() { ( OutcomeType.BEANED_HITTER, 1 ), ( OutcomeType.BEANED_PITCHER, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
+				new List<(string, int)>() { ( OutcomeType.BLOOD_DRAIN_SIPHONER, 1 ), ( OutcomeType.BLOOD_DRAIN_VICTIM, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
+				new List<(string, int)>() { ( OutcomeType.FEEDBACK_BLOCKED, 1 ), ( OutcomeType.FEEDBACK_BLOCKED, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
+				new List<(string, int)>() { ( OutcomeType.INCINERATION, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
+				new List<(string, int)>() { ( OutcomeType.SHELL_CRACKED, 1 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
+				new List<(string, int)>() { ( OutcomeType.PARTYING, 1 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
+				new List<(string, int)>() { ( OutcomeType.REVERB_PLAYER, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
+				new List<(string, int)>() { ( OutcomeType.PEANUT_GOOD, 2 ) }));
+			m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
+				new List<(string, int)>() { ( OutcomeType.PEANUT_BAD, 2 ) }));
+		}
+
 		private async Task UpdateOutcomes(Game newState)
 		{
-			var match = debtRegex.Match(newState.lastUpdate);
-			if(match.Success)
+			foreach(var matcher in m_outcomeMatchers)
 			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.DEBT_PAID, match.Groups[2].Value);
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.UNSTABLE_CHAINED, match.Groups[6].Value);
+				await matcher.Process(m_client, m_currEvent, newState.lastUpdate);
 			}
 
-			match = beanRegex.Match(newState.lastUpdate);
-			if(match.Success)
-			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BEANED_PITCHER, match.Groups[1].Value);
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BEANED_HITTER, match.Groups[2].Value);
-			}
-
-			match = blooddrainRegex.Match(newState.lastUpdate);
-			if(match.Success)
-			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_SIPHONER, match.Groups[1].Value);
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.BLOOD_DRAIN_VICTIM, match.Groups[2].Value);
-			}
-
-			match = feedbackRegex.Match(newState.lastUpdate);
+			var match = feedbackRegex.Match(newState.lastUpdate);
 			if(match.Success)
 			{
 				// Old player
@@ -898,14 +928,7 @@ namespace Cauldron
 				m_currEvent.outcomes.Add(o);
 
 				// New player
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
-			}
-
-			match = feedbackBlockedRegex.Match(newState.lastUpdate);
-			if(match.Success)
-			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[1].Value);
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.FEEDBACK_BLOCKED, match.Groups[2].Value);
+				await OutcomeMatcher.CreateAndAddPlayerOutcome(m_client, m_currEvent, newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
 			}
 
 			match = teamReverbRegex.Match(newState.lastUpdate);
@@ -947,32 +970,8 @@ namespace Cauldron
 				m_currEvent.outcomes.Add(e);
 			}
 
-			match = playerReverbRegex.Match(newState.lastUpdate);
-			if(match.Success)
-			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.REVERB_PLAYER, match.Groups[2].Value);
-			}
 
-			match = incineRegex.Match(newState.lastUpdate);
-			if (match.Success)
-			{
-				await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.INCINERATION, match.Groups[2].Value);
-			}
 
-			match = peanutRegex.Match(newState.lastUpdate);
-			if (match.Success)
-			{
-				string playerName = match.Groups[2].Value;
-
-				if (match.Groups[3].Value == "yummy")
-				{
-					await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_GOOD, playerName);
-				}
-				else if (match.Groups[3].Value == "allergic")
-				{
-					await CreateAndAddPlayerOutcome(newState.lastUpdate, OutcomeType.PEANUT_BAD, playerName);
-				}
-			}
 		}
 
 		/// <summary>

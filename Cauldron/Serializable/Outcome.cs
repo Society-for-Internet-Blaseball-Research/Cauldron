@@ -24,7 +24,10 @@ namespace Cauldron
 		public static string BEANED_HITTER = "BEANED_HITTER";
 		public static string DEBT_PAID = "DEBT_PAID";
 		public static string UNSTABLE_CHAINED = "UNSTABLE_CHAINED";
+		public static string SHELL_CRACKED = "SHELL_CRACKED";
+		public static string PARTYING = "PARTYING";
 	}
+
 
 	/// <summary>
 	/// Player events
