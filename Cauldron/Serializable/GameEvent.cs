@@ -50,6 +50,7 @@ namespace Cauldron
 		public bool wasBaseStolen { get; set; }
 		public bool wasCaughtStealing { get; set; }
 		public bool wasPickedOff { get; set; }
+		public bool runnerScored { get; set; }
 	}
 
 	/// <summary>

@@ -649,6 +649,7 @@ namespace Cauldron
 
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = BASE_RUNNER_SCORED;
+					runner.runnerScored = true;
 					if (newState.lastUpdate.Contains("steals"))
 					{
 						runner.wasBaseStolen = true;
@@ -717,6 +718,7 @@ namespace Cauldron
 				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
+				runner.runnerScored = true;
 				runner.baseAfterPlay = BASE_RUNNER_SCORED;
 				m_currEvent.baseRunners.Add(runner);
 			}
