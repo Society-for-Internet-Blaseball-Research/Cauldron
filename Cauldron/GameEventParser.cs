@@ -1078,9 +1078,10 @@ namespace Cauldron
 			// Unsure if this is enough
 			m_currEvent.isLastGameEvent = newState.gameComplete;
 			IsGameComplete = newState.gameComplete;
-			if(IsGameComplete && !m_sentGameComplete)
+			if(IsGameComplete)
 			{
-				GameComplete?.Invoke(this, new GameCompleteEventArgs(m_gameEvents));
+				// Just complete however many outs
+				m_currEvent.outsOnPlay = 3 - m_currEvent.outsBeforePlay;
 			}
 
 			// Store original update text for reference
@@ -1116,9 +1117,9 @@ namespace Cauldron
 				m_gameEvents.Add(emitted);
 			}
 
-			if(IsGameComplete)
+			if (IsGameComplete && !m_sentGameComplete)
 			{
-				// Fire event
+				GameComplete?.Invoke(this, new GameCompleteEventArgs(m_gameEvents));
 			}
 		}
 	}
