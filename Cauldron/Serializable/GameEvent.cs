@@ -33,6 +33,7 @@ namespace Cauldron
 		public static string SINGLE = "SINGLE";
 		public static string DOUBLE = "DOUBLE";
 		public static string TRIPLE = "TRIPLE";
+		public static string QUADRUPLE = "QUADRUPLE";
 		public static string HOME_RUN = "HOME_RUN";
 		public static string SACRIFICE = "SACRIFICE";
 	}

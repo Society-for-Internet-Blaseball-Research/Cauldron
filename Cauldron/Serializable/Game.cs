@@ -72,6 +72,10 @@ namespace Cauldron
 		public string rules { get; set; }
 		public string statsheet { get; set; }
 
+		public int? homeBases { get; set; }
+		public int? awayBases { get; set; }
+		public int? homeBalls { get; set; }
+		public int? awayBalls { get; set; }
 
 		[JsonConverter(typeof(TimestampConverter))]
 		public DateTime timestamp { get; set; }
@@ -152,6 +156,24 @@ namespace Cauldron
 			get
 			{
 				return topOfInning ? homeTeam : awayTeam;
+			}
+		}
+
+		[JsonIgnore]
+		public int BatterTeamBases
+		{
+			get
+			{
+				return (topOfInning ? awayBases : homeBases) ?? 4;
+			}
+		}
+
+		[JsonIgnore]
+		public int BatterTeamBalls
+		{
+			get
+			{
+				return (topOfInning ? awayBalls : homeBalls) ?? 4;
 			}
 		}
 	}

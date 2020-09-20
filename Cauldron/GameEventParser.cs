@@ -458,10 +458,16 @@ namespace Cauldron
 				m_currEvent.batterBaseAfterPlay = 3;
 				m_currEvent.eventType = GameEventType.TRIPLE;
 			}
-			else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
+			else if (newState.lastUpdate.Contains("hits a Quadruple"))
 			{
 				m_currEvent.basesHit = 4;
-				m_currEvent.batterBaseAfterPlay = BASE_RUNNER_SCORED;
+				m_currEvent.batterBaseAfterPlay = 4;
+				m_currEvent.eventType = GameEventType.QUADRUPLE;
+			}
+			else if (newState.lastUpdate.Contains("home run") || newState.lastUpdate.Contains("grand slam"))
+			{
+				m_currEvent.basesHit = newState.BatterTeamBases;
+				m_currEvent.batterBaseAfterPlay = newState.BatterTeamBases;
 				m_currEvent.eventType = GameEventType.HOME_RUN;
 				m_currEvent.battedBallType = BattedBallType.FLY;
 			}
@@ -519,7 +525,6 @@ namespace Cauldron
 		}
 
 
-		private const int BASE_RUNNER_SCORED = 99;
 		private const int BASE_RUNNER_OUT = 0;
 		/// <summary>
 		/// Update stuff around baserunning
@@ -648,7 +653,7 @@ namespace Cauldron
 					}
 
 					runner.baseBeforePlay = baseIndex + 1;
-					runner.baseAfterPlay = BASE_RUNNER_SCORED;
+					runner.baseAfterPlay = newState.BatterTeamBases;
 					runner.runnerScored = true;
 					if (newState.lastUpdate.Contains("steals"))
 					{
@@ -719,7 +724,7 @@ namespace Cauldron
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
 				runner.runnerScored = true;
-				runner.baseAfterPlay = BASE_RUNNER_SCORED;
+				runner.baseAfterPlay = newState.BatterTeamBases;
 				m_currEvent.baseRunners.Add(runner);
 			}
 
@@ -745,9 +750,20 @@ namespace Cauldron
 								m_currEvent.eventType = GameEventType.TRIPLE;
 								m_currEvent.basesHit = 3;
 								break;
-							case BASE_RUNNER_SCORED:
-								m_currEvent.eventType = GameEventType.HOME_RUN;
+							case 4:
 								m_currEvent.basesHit = 4;
+								if (newState.BatterTeamBases == 4)
+								{
+									m_currEvent.eventType = GameEventType.HOME_RUN;
+								}
+								else
+								{
+									m_currEvent.eventType = GameEventType.QUADRUPLE;
+								}
+								break;
+							case 5:
+								m_currEvent.basesHit = 5;
+								m_currEvent.eventType = GameEventType.HOME_RUN;
 								break;
 						}
 
