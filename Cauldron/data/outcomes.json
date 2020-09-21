@@ -120,13 +120,18 @@
 		]
 	},
 	{
-		"regex": "The Electricity zaps a strike away!",
+		"regex": "(.+) hits (.+) with a pitch! (.+) is now Flickering!",
 		"entities": [
 			{
-				"outcomeType": "ELECTRIC_ZAP",
-				"entityType": "none",
-				"index": 0
+				"outcomeType": "BEANED_FLICKERING_HITTER",
+				"entityType": "player",
+				"index": 2
+			},
+			{
+				"outcomeType": "BEANED_FLICKERING_PITCHER",
+				"entityType": "player",
+				"index": 1
 			}
 		]
-	}	
+	}
 ]
