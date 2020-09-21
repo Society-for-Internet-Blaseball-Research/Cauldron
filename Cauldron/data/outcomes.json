@@ -1,0 +1,122 @@
+[
+	{
+		"regex": "A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
+		"entities": [
+			{
+				"outcomeType": "DEBT_PAID",
+				"entityType": "player",
+				"index": 2
+			},
+			{
+				"outcomeType": "UNSTABLE_CHAINED",
+				"entityType": "player",
+				"index": 6
+			}
+		]
+	},
+	{
+		"regex": "(.+) hits (.+) with a pitch! (.+) is now Unstable!",
+		"entities": [
+			{
+				"outcomeType": "BEANED_HITTER",
+				"entityType": "player",
+				"index": 1
+			},
+			{
+				"outcomeType": "BEANED_PITCHER",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHONER",
+				"entityType": "player",
+				"index": 1
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": "Reality begins to flicker...but (.+) resists! (.+) is affect",
+		"entities": [
+			{
+				"outcomeType": "FEEDBACK_BLOCKED",
+				"entityType": "player",
+				"index": 1
+			},
+			{
+				"outcomeType": "FEEDBACK_BLOCKED",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": ".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
+		"entities": [
+			{
+				"outcomeType": "INCINERATION",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": "The Birds pecked (.+) free!",
+		"entities": [
+			{
+				"outcomeType": "SHELL_CRACKED",
+				"entityType": "player",
+				"index": 1
+			}
+		]
+	},
+	{
+		"regex": "(.+) is partying!",
+		"entities": [
+			{
+				"outcomeType": "PARTYING",
+				"entityType": "player",
+				"index": 1
+			}
+		]
+	},
+	{
+		"regex": "Reverberations are at (\\w+) levels! (.+) is now .*",
+		"entities": [
+			{
+				"outcomeType": "REVERB_PLAYER",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": ".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
+		"entities": [
+			{
+				"outcomeType": "PEANUT_GOOD",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	},
+	{
+		"regex": ".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
+		"entities": [
+			{
+				"outcomeType": "PEANUT_BAD",
+				"entityType": "player",
+				"index": 2
+			}
+		]
+	}
+]

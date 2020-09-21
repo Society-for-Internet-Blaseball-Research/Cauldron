@@ -8,4 +8,10 @@
     <Company>Society for Internet Blaseball Research</Company>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="data\outcomes.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

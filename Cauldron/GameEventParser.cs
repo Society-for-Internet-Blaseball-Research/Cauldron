@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -63,7 +64,6 @@ namespace Cauldron
 
 		HttpClient m_client;
 
-
 		public event EventHandler<GameCompleteEventArgs> GameComplete;
 		public bool IsGameComplete
 		{
@@ -74,6 +74,12 @@ namespace Cauldron
 		public IEnumerable<GameEvent> GameEvents => m_gameEvents;
 		private List<GameEvent> m_gameEvents;
 
+		static JsonSerializerOptions s_outcomeJsonSerOpt = new JsonSerializerOptions() 
+		{ 
+			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+			WriteIndented = true
+		};
+
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_client = new HttpClient();
@@ -81,7 +87,14 @@ namespace Cauldron
 			m_client.DefaultRequestHeaders.Accept.Clear();
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-			SetupOutcomeMatchers();
+			if (File.Exists("data/outcomes.json"))
+			{
+				using (var outcomesFile = new StreamReader("data/outcomes.json"))
+				{
+					var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomesFile.ReadToEnd(), s_outcomeJsonSerOpt);
+					SetupOutcomeMatchers(outcomes);
+				}
+			}
 
 			//m_playerNameToId = new Dictionary<string, string>();
 			m_homePlayerLineup = new string[10];
@@ -854,6 +867,19 @@ namespace Cauldron
 				m_playerOutcomes = p;
 			}
 
+			public OutcomeMatcher(OutcomeDefinition od)
+			{
+				m_regex = new Regex(od.Regex);
+				m_playerOutcomes = new List<(string, int)>();
+				foreach(var o in od.Entities)
+				{
+					if(o.EntityType == "player")
+					{
+						m_playerOutcomes.Add((o.OutcomeType, o.Index));
+					}
+				}
+			}
+
 			private static async Task<string> TryGetPlayerId(HttpClient client, string name)
 			{
 				HttpResponseMessage response = await client.GetAsync($"playerIdsByName?name={HttpUtility.UrlEncode(name)}");
@@ -904,29 +930,38 @@ namespace Cauldron
 
 		private List<OutcomeMatcher> m_outcomeMatchers;
 
-		private void SetupOutcomeMatchers()
+		private void SetupOutcomeMatchers(List<OutcomeDefinition> defs)
 		{
 			m_outcomeMatchers = new List<OutcomeMatcher>();
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
-				new List<(string, int)>() { ( OutcomeType.DEBT_PAID, 2 ), ( OutcomeType.UNSTABLE_CHAINED, 6 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
-				new List<(string, int)>() { ( OutcomeType.BEANED_HITTER, 1 ), ( OutcomeType.BEANED_PITCHER, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
-				new List<(string, int)>() { ( OutcomeType.BLOOD_DRAIN_SIPHONER, 1 ), ( OutcomeType.BLOOD_DRAIN_VICTIM, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
-				new List<(string, int)>() { ( OutcomeType.FEEDBACK_BLOCKED, 1 ), ( OutcomeType.FEEDBACK_BLOCKED, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
-				new List<(string, int)>() { ( OutcomeType.INCINERATION, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
-				new List<(string, int)>() { ( OutcomeType.SHELL_CRACKED, 1 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
-				new List<(string, int)>() { ( OutcomeType.PARTYING, 1 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
-				new List<(string, int)>() { ( OutcomeType.REVERB_PLAYER, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
-				new List<(string, int)>() { ( OutcomeType.PEANUT_GOOD, 2 ) }));
-			m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
-				new List<(string, int)>() { ( OutcomeType.PEANUT_BAD, 2 ) }));
+
+			foreach(var od in defs)
+			{
+				m_outcomeMatchers.Add(new OutcomeMatcher(od));
+			}
+
+			if (false)
+			{
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
+					new List<(string, int)>() { (OutcomeType.DEBT_PAID, 2), (OutcomeType.UNSTABLE_CHAINED, 6) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
+					new List<(string, int)>() { (OutcomeType.BEANED_HITTER, 1), (OutcomeType.BEANED_PITCHER, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
+					new List<(string, int)>() { (OutcomeType.BLOOD_DRAIN_SIPHONER, 1), (OutcomeType.BLOOD_DRAIN_VICTIM, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
+					new List<(string, int)>() { (OutcomeType.FEEDBACK_BLOCKED, 1), (OutcomeType.FEEDBACK_BLOCKED, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
+					new List<(string, int)>() { (OutcomeType.INCINERATION, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
+					new List<(string, int)>() { (OutcomeType.SHELL_CRACKED, 1) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
+					new List<(string, int)>() { (OutcomeType.PARTYING, 1) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
+					new List<(string, int)>() { (OutcomeType.REVERB_PLAYER, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
+					new List<(string, int)>() { (OutcomeType.PEANUT_GOOD, 2) }));
+				m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
+					new List<(string, int)>() { (OutcomeType.PEANUT_BAD, 2) }));
+			}
 		}
 
 		private async Task UpdateOutcomes(Game newState)
