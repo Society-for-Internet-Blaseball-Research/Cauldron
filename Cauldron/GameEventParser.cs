@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -87,13 +88,37 @@ namespace Cauldron
 			m_client.DefaultRequestHeaders.Accept.Clear();
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-			if (File.Exists("data/outcomes.json"))
+			string outcomeString = "";
+			
+			// Wild but neat: try to download the latest outcomes.json content directly from the mainline repository, and use that!
+			using (var client = new WebClient())
+			{
+				try
+				{
+					outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
+				}
+				catch(Exception)
+				{
+				}
+			}
+
+			// Fall back to a local outcomes.json if it exists
+			if (outcomeString == "" && File.Exists("data/outcomes.json"))
 			{
 				using (var outcomesFile = new StreamReader("data/outcomes.json"))
 				{
-					var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomesFile.ReadToEnd(), s_outcomeJsonSerOpt);
-					SetupOutcomeMatchers(outcomes);
+					outcomeString = outcomesFile.ReadToEnd();
 				}
+			}
+
+			if (outcomeString != "")
+			{
+				var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomeString, s_outcomeJsonSerOpt);
+				SetupOutcomeMatchers(outcomes);
+			}
+			else
+			{
+				SetupOutcomeMatchers(null);
 			}
 
 			//m_playerNameToId = new Dictionary<string, string>();
@@ -932,14 +957,17 @@ namespace Cauldron
 
 		private void SetupOutcomeMatchers(List<OutcomeDefinition> defs)
 		{
+
 			m_outcomeMatchers = new List<OutcomeMatcher>();
 
-			foreach(var od in defs)
+			if (defs != null)
 			{
-				m_outcomeMatchers.Add(new OutcomeMatcher(od));
+				foreach (var od in defs)
+				{
+					m_outcomeMatchers.Add(new OutcomeMatcher(od));
+				}
 			}
-
-			if (false)
+			else
 			{
 				m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
 					new List<(string, int)>() { (OutcomeType.DEBT_PAID, 2), (OutcomeType.UNSTABLE_CHAINED, 6) }));
