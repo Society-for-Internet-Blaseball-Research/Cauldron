@@ -89,20 +89,8 @@ namespace Cauldron
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
 			string outcomeString = "";
-			
-			// Wild but neat: try to download the latest outcomes.json content directly from the mainline repository, and use that!
-			using (var client = new WebClient())
-			{
-				try
-				{
-					outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
-				}
-				catch(Exception)
-				{
-				}
-			}
 
-			// Fall back to a local outcomes.json if it exists
+			// Use a local outcomes.json if it exists
 			if (outcomeString == "" && File.Exists("data/outcomes.json"))
 			{
 				using (var outcomesFile = new StreamReader("data/outcomes.json"))
@@ -110,6 +98,22 @@ namespace Cauldron
 					outcomeString = outcomesFile.ReadToEnd();
 				}
 			}
+
+			if (outcomeString == "")
+			{
+				// Wild but neat: try to download the latest outcomes.json content directly from the mainline repository, and use that!
+				using (var client = new WebClient())
+				{
+					try
+					{
+						outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
+					}
+					catch (Exception)
+					{
+					}
+				}
+			}
+			
 
 			if (outcomeString != "")
 			{
@@ -885,22 +889,29 @@ namespace Cauldron
 		{
 			Regex m_regex;
 			IList<(string, int)> m_playerOutcomes;
+			IList<string> m_noneOutcomes;
 
 			public OutcomeMatcher(string r, IList<(string, int)> p)
 			{
 				m_regex = new Regex(r);
 				m_playerOutcomes = p;
+				m_noneOutcomes = new List<string>();
 			}
 
 			public OutcomeMatcher(OutcomeDefinition od)
 			{
 				m_regex = new Regex(od.Regex);
 				m_playerOutcomes = new List<(string, int)>();
+				m_noneOutcomes = new List<string>();
 				foreach(var o in od.Entities)
 				{
 					if(o.EntityType == "player")
 					{
 						m_playerOutcomes.Add((o.OutcomeType, o.Index));
+					}
+					if(o.EntityType == "none")
+					{
+						m_noneOutcomes.Add(o.OutcomeType);
 					}
 				}
 			}
@@ -945,6 +956,12 @@ namespace Cauldron
 					foreach(var kvp in m_playerOutcomes)
 					{
 						await CreateAndAddPlayerOutcome(client, ev, update, kvp.Item1, match.Groups[kvp.Item2].Value);
+					}
+					foreach(var n in m_noneOutcomes)
+					{
+						Outcome o = new Outcome(update);
+						o.eventType = n;
+						ev.outcomes.Add(o);
 					}
 				}
 			}

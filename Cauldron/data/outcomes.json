@@ -118,5 +118,15 @@
 				"index": 2
 			}
 		]
-	}
+	},
+	{
+		"regex": "The Electricity zaps a strike away!",
+		"entities": [
+			{
+				"outcomeType": "ELECTRIC_ZAP",
+				"entityType": "none",
+				"index": 0
+			}
+		]
+	}	
 ]
