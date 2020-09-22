@@ -16,12 +16,18 @@ namespace Cauldron
 
 	public class GameCompleteEventArgs
 	{
-		public GameCompleteEventArgs(IEnumerable<GameEvent> gameEvents)
+		public GameCompleteEventArgs(string gameId, IEnumerable<GameEvent> gameEvents, string winningPitcherId, string losingPitcherId)
 		{
+			GameId = gameId;
 			GameEvents = gameEvents;
+			WinningPitcherId = winningPitcherId;
+			LosingPitcherId = losingPitcherId;
 		}
 
+		public string GameId;
 		public IEnumerable<GameEvent> GameEvents;
+		public string WinningPitcherId;
+		public string LosingPitcherId;
 	}
 
 	/// <summary>
@@ -60,8 +66,8 @@ namespace Cauldron
 		// Event currently being appended to
 		GameEvent m_currEvent;
 
-		// Map of player IDs indexed by name; used in looking up players who were incinerated or ate a peanut
-		//Dictionary<string, string> m_playerNameToId;
+		string m_awayOwningPitcher;
+		string m_homeOwningPitcher;
 
 		HttpClient m_client;
 
@@ -97,7 +103,7 @@ namespace Cauldron
 				{
 					outcomeString = outcomesFile.ReadToEnd();
 				}
-				Console.Out.Write("Using local outcomes.json: ");
+				//Console.Out.Write("Using local outcomes.json: ");
 			}
 
 			if (outcomeString == "")
@@ -108,7 +114,7 @@ namespace Cauldron
 					try
 					{
 						outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
-						Console.Write("Using network outcomes.json: ");
+						//Console.Write("Using network outcomes.json: ");
 					}
 					catch (Exception)
 					{
@@ -120,7 +126,7 @@ namespace Cauldron
 			if (outcomeString != "")
 			{
 				var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomeString, s_outcomeJsonSerOpt);
-				Console.WriteLine($"{outcomes.Count} entries found.");
+				//Console.WriteLine($"{outcomes.Count} entries found.");
 				SetupOutcomeMatchers(outcomes);
 			}
 			else
@@ -141,6 +147,8 @@ namespace Cauldron
 			m_gameId = initState.gameId;
 			m_responsiblePitchers = new Dictionary<string, string>();
 			m_startedInnings = new HashSet<string>();
+			m_homeOwningPitcher = null;
+			m_awayOwningPitcher = null;
 
 			m_currEvent = CreateNewGameEvent(initState, timeStamp);
 			m_currEvent.eventText.Add(initState.lastUpdate);
@@ -1105,6 +1113,35 @@ namespace Cauldron
 			}
 		}
 
+		private void UpdateScoreChanges(Game newState)
+		{
+			int oldScoreDiff = m_oldState.homeScore - m_oldState.awayScore;
+			int newScoreDiff = newState.homeScore - newState.awayScore;
+
+			// Should leave us with 1 = home winning, 0 = tied, -1 = away winning
+			if (oldScoreDiff != 0)
+				oldScoreDiff /= Math.Abs(oldScoreDiff);
+			if(newScoreDiff != 0)
+				newScoreDiff /= Math.Abs(newScoreDiff);
+
+			// If the lead changed
+			if(oldScoreDiff != newScoreDiff)
+			{
+				if(newScoreDiff > 0)
+				{
+					// Home is now winning
+					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runnerScored).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
+					m_awayOwningPitcher = leadingRunner?.responsiblePitcherId ?? m_awayOwningPitcher;
+				}
+				else if(newScoreDiff < 0)
+				{
+					// Away is now winning
+					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runnerScored).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
+					m_homeOwningPitcher = leadingRunner?.responsiblePitcherId ?? m_homeOwningPitcher;
+				}
+			}
+		}
+
 		/// <summary>
 		/// Call this with every game update for the game this parser is handling
 		/// </summary>
@@ -1148,6 +1185,15 @@ namespace Cauldron
 			{
 				m_currEvent.batterId = newState.BatterId;
 			}
+			
+			if(m_homeOwningPitcher == null)
+			{
+				m_homeOwningPitcher = newState.homePitcher;
+			}
+			if(m_awayOwningPitcher == null)
+			{
+				m_awayOwningPitcher = newState.awayPitcher;
+			}
 
 			// Presume this event will be last; steals can set this to false later
 			m_currEvent.isLastEventForPlateAppearance = true;
@@ -1165,6 +1211,9 @@ namespace Cauldron
 
 			// Call after UpdateOuts
 			UpdateBaserunning(newState);
+
+			// Call after UpdateBaseRunning
+			UpdateScoreChanges(newState);
 
 			await UpdateOutcomes(newState);
 
@@ -1218,7 +1267,11 @@ namespace Cauldron
 
 			if (IsGameComplete && !m_sentGameComplete)
 			{
-				GameComplete?.Invoke(this, new GameCompleteEventArgs(m_gameEvents));
+				var lastEvent = m_gameEvents.LastOrDefault();
+				var winPitcher = lastEvent.homeScore > lastEvent.awayScore ? m_homeOwningPitcher : m_awayOwningPitcher;
+				var losePitcher = lastEvent.homeScore > lastEvent.awayScore ? m_awayOwningPitcher : m_homeOwningPitcher;
+
+				GameComplete?.Invoke(this, new GameCompleteEventArgs(lastEvent.gameId, m_gameEvents, winPitcher, losePitcher));
 			}
 		}
 	}
