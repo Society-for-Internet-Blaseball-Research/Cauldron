@@ -97,6 +97,7 @@ namespace Cauldron
 				{
 					outcomeString = outcomesFile.ReadToEnd();
 				}
+				Console.Out.Write("Using local outcomes.json: ");
 			}
 
 			if (outcomeString == "")
@@ -107,6 +108,7 @@ namespace Cauldron
 					try
 					{
 						outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
+						Console.Write("Using network outcomes.json: ");
 					}
 					catch (Exception)
 					{
@@ -118,6 +120,7 @@ namespace Cauldron
 			if (outcomeString != "")
 			{
 				var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomeString, s_outcomeJsonSerOpt);
+				Console.WriteLine($"{outcomes.Count} entries found.");
 				SetupOutcomeMatchers(outcomes);
 			}
 			else
