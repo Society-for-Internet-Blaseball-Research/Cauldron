@@ -1241,11 +1241,10 @@ namespace Cauldron
 
 			bool validInningState = CheckInningState(newState);
 
-			if (!validInningState)
-			{
-				System.Diagnostics.Debugger.Break();
-			}
-
+			//if (!validInningState)
+			//{
+			//	System.Diagnostics.Debugger.Break();
+			//}
 
 			if (m_currEvent == null)
 			{
