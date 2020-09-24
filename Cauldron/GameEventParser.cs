@@ -30,6 +30,17 @@ namespace Cauldron
 		public string LosingPitcherId;
 	}
 
+	public enum InningState
+	{
+		Init,
+		GameStart,
+		HalfInningStart,
+		BatterMessage,
+		ValidBatter,
+		PlayEnded,
+		GameOver
+	}
+
 	/// <summary>
 	/// Basic parser that takes Game json updates and emits GameEvent json objects
 	/// </summary>
@@ -37,6 +48,8 @@ namespace Cauldron
 	{
 		// Last state we saw, for comparison
 		Game m_oldState;
+
+		InningState m_inningState;
 
 		// State tracking for stats not tracked inherently in the state updates
 		int m_eventIndex = 0;
@@ -89,6 +102,8 @@ namespace Cauldron
 
 		public void StartNewGame(Game initState, DateTime timeStamp)
 		{
+			m_inningState = InningState.Init;
+
 			m_client = new HttpClient();
 			m_client.BaseAddress = new Uri("https://api.blaseball-reference.com/v1/");
 			m_client.DefaultRequestHeaders.Accept.Clear();
@@ -156,6 +171,8 @@ namespace Cauldron
 			m_gameEvents = new List<GameEvent>();
 			IsGameComplete = false;
 			m_sentGameComplete = false;
+
+			CheckInningState(initState);
 		}
 
 		#region Inning tracking
@@ -251,28 +268,10 @@ namespace Cauldron
 		}
 
 
-		// If the Id and name are valid, store them in our map
-		private void CapturePlayerId(string id, string name)
-		{
-			if(id != null && name != null && id != "" && name != "")
-			{
-				//m_playerNameToId[name] = id;
-			}
-		}
 
-		// Capture available player IDs and names from the state
-		private void CapturePlayerIds(Game state)
-		{
-			CapturePlayerId(state.awayBatter, state.awayBatterName);
-			CapturePlayerId(state.awayPitcher, state.awayPitcherName);
-			CapturePlayerId(state.homeBatter, state.homeBatterName);
-			CapturePlayerId(state.homePitcher, state.homePitcherName);
-		}
 
 		private GameEvent CreateNewGameEvent(Game newState, DateTime timeStamp)
 		{
-			CapturePlayerIds(newState);
-
 			GameEvent currEvent = new GameEvent();
 			currEvent.parsingError = false;
 			currEvent.parsingErrorList = new List<string>();
@@ -852,10 +851,6 @@ namespace Cauldron
 			// Don't trust the batter counts when we change innings
 			if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
 
-				// Always attribute the event to the last pitcher involved
-				// (but only if the half-inning didn't change, ugh)
-				m_currEvent.pitcherId = newState.PitcherId;
-
 				// Game updates have a batter count per team, so the lineup position is that % 9
 				if (newState.topOfInning)
 				{
@@ -1142,6 +1137,78 @@ namespace Cauldron
 			}
 		}
 
+		public void EmitEvent(Game newState, DateTime timestamp, bool startFromCurrent = false)
+		{
+			GameEvent emitted = m_currEvent;
+			m_eventIndex++;
+
+			// If this was a steal or caught stealing, OR the caller want to start from this current state
+			if (startFromCurrent || m_currEvent.isSteal || m_currEvent.eventType == GameEventType.CAUGHT_STEALING)
+			{
+				// Start the next event in this state
+				m_currEvent = CreateNewGameEvent(newState, timestamp);
+			}
+			else
+			{
+				// Start the next event in the next state
+				m_currEvent = null;
+			}
+
+			ErrorCheckBeforeEmit(emitted);
+			m_gameEvents.Add(emitted);
+
+		}
+
+
+		
+		public bool CheckInningState(Game newState)
+		{
+			if(m_inningState == InningState.Init && 
+				newState.lastUpdate.Contains("Play ball!"))
+			{
+				m_inningState = InningState.GameStart;
+				return true;
+			}
+			else if((m_inningState == InningState.GameStart || m_inningState == InningState.PlayEnded) && 
+				(newState.lastUpdate.StartsWith("Top of") || newState.lastUpdate.StartsWith("Bottom of")))
+			{
+				m_inningState = InningState.HalfInningStart;
+				return true;
+			}
+			else if((m_inningState == InningState.HalfInningStart || m_inningState == InningState.PlayEnded) &&
+				(newState.lastUpdate.Contains("batting for the")))
+			{
+				m_inningState = InningState.BatterMessage;
+				return true;
+			}
+			else if(m_inningState == InningState.BatterMessage && 
+				(newState.BatterId != null))
+			{
+				m_inningState = InningState.ValidBatter;
+				return true;
+			}
+			else if((m_inningState == InningState.ValidBatter || m_inningState == InningState.BatterMessage) && 
+				(newState.BatterId == null))
+			{
+				m_inningState = InningState.PlayEnded;
+				return true;
+			}
+			else if(m_inningState == InningState.ValidBatter && 
+				(newState.BatterId == m_oldState.BatterId))
+			{
+				// Stay in ValidBatter
+				return true;
+			}
+			else if(m_inningState == InningState.PlayEnded &&
+				(newState.gameComplete == true ))
+			{
+				m_inningState = InningState.GameOver;
+				return true;
+			}
+
+			return false;
+		}
+
 		/// <summary>
 		/// Call this with every game update for the game this parser is handling
 		/// </summary>
@@ -1172,12 +1239,19 @@ namespace Cauldron
 				m_processed++;
 			}
 
-			if(m_currEvent == null)
+			bool validInningState = CheckInningState(newState);
+
+			if (!validInningState)
+			{
+				System.Diagnostics.Debugger.Break();
+			}
+
+
+			if (m_currEvent == null)
 			{
 				m_currEvent = CreateNewGameEvent(newState, timeStamp);
 			}
 
-			CapturePlayerIds(newState);
 			m_currEvent.lastPerceivedAt = timeStamp;
 
 			// If we haven't found the batter for this event yet, try again
@@ -1185,8 +1259,15 @@ namespace Cauldron
 			{
 				m_currEvent.batterId = newState.BatterId;
 			}
-			
-			if(m_homeOwningPitcher == null)
+
+			if(m_inningState == InningState.BatterMessage || m_inningState == InningState.ValidBatter)
+			{
+				// If we're in a normal batting state
+				// Set this event to the current pitcher (which should always be valid in this state)
+				m_currEvent.pitcherId = newState.PitcherId;
+			}
+
+			if (m_homeOwningPitcher == null)
 			{
 				m_homeOwningPitcher = newState.homePitcher;
 			}
@@ -1245,24 +1326,10 @@ namespace Cauldron
 				|| m_currEvent.isSteal 
 				|| m_currEvent.isWalk 
 				|| m_currEvent.isLastGameEvent
-				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH)
+				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH
+				|| m_inningState == InningState.PlayEnded)
 			{
-				GameEvent emitted = m_currEvent;
-				m_eventIndex++;
-
-				if (m_currEvent.isSteal || m_currEvent.eventType == GameEventType.CAUGHT_STEALING)
-				{
-					// Start the next event in this state
-					m_currEvent = CreateNewGameEvent(newState, timeStamp);
-				}
-				else
-				{
-					// Start the next event in the next state
-					m_currEvent = null;
-				}
-
-				ErrorCheckBeforeEmit(emitted);
-				m_gameEvents.Add(emitted);
+				EmitEvent(newState, timeStamp);
 			}
 
 			if (IsGameComplete && !m_sentGameComplete)
