@@ -10,6 +10,11 @@ namespace Cauldron
 	/// </summary>
 	public class Game : IEquatable<Game>
 	{
+		public Game ShallowCopy()
+		{
+			return (Game)this.MemberwiseClone();
+		}
+
 		public List<int> basesOccupied { get; set; }
 		public List<string> baseRunners { get; set; }
 

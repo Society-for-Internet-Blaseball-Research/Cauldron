@@ -36,6 +36,8 @@ namespace Cauldron
 		public static string QUADRUPLE = "QUADRUPLE";
 		public static string HOME_RUN = "HOME_RUN";
 		public static string SACRIFICE = "SACRIFICE";
+		public static string UNKNOWN_OUT = "UNKNOWN_OUT";
+		public static string GAME_OVER = "GAME_OVER";
 	}
 
 

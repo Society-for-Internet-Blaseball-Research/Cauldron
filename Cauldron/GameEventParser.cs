@@ -58,8 +58,8 @@ namespace Cauldron
 		Dictionary<string, string> m_responsiblePitchers;
 
 		// Reconstruct the team linup from game data, used in identifying unknown batters
-		string[] m_homePlayerLineup;
-		string[] m_awayPlayerLineup;
+		//string[] m_homePlayerLineup;
+		//string[] m_awayPlayerLineup;
 
 		// Keep of track of whether we've had a valid batter for this inning
 		HashSet<string> m_startedInnings;
@@ -150,8 +150,8 @@ namespace Cauldron
 			}
 
 			//m_playerNameToId = new Dictionary<string, string>();
-			m_homePlayerLineup = new string[10];
-			m_awayPlayerLineup = new string[10];
+			//m_homePlayerLineup = new string[10];
+			//m_awayPlayerLineup = new string[10];
 			m_oldState = initState;
 			m_eventIndex = 0;
 			m_batterCount = 0;
@@ -211,7 +211,7 @@ namespace Cauldron
 			}
 			m_fixes++;
 		}
-	
+
 		private bool IsNextHalfInning(Game oldState, Game newState)
 		{
 			// Assumes no gaps
@@ -309,6 +309,7 @@ namespace Cauldron
 			currEvent.eventText = new List<string>();
 			currEvent.pitchesList = new List<char>();
 			currEvent.outcomes = new List<Outcome>();
+			currEvent.baseRunners = new List<GameEventBaseRunner>();
 
 			// Might be incorrect
 			currEvent.totalStrikes = newState.atBatStrikes;
@@ -362,7 +363,7 @@ namespace Cauldron
 			// This else case should return so we can assume we are only covering one event below
 			else
 			{
-				AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
+				//AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
 				return;
 			}
 
@@ -780,51 +781,51 @@ namespace Cauldron
 				m_currEvent.baseRunners.Add(runner);
 			}
 
-			// Check for fixable errors with missed hits
-			if(m_currEvent.eventType == GameEventType.UNKNOWN)
-			{
-				// Look to see if the batter got on base
-				foreach(var runner in m_currEvent.baseRunners)
-				{
-					if(runner.runnerId == m_currEvent.batterId)
-					{
-						switch(runner.baseAfterPlay)
-						{
-							case 1:
-								m_currEvent.eventType = GameEventType.SINGLE;
-								m_currEvent.basesHit = 1;
-								break;
-							case 2:
-								m_currEvent.eventType = GameEventType.DOUBLE;
-								m_currEvent.basesHit = 2;
-								break;
-							case 3:
-								m_currEvent.eventType = GameEventType.TRIPLE;
-								m_currEvent.basesHit = 3;
-								break;
-							case 4:
-								m_currEvent.basesHit = 4;
-								if (newState.BatterTeamBases == 4)
-								{
-									m_currEvent.eventType = GameEventType.HOME_RUN;
-								}
-								else
-								{
-									m_currEvent.eventType = GameEventType.QUADRUPLE;
-								}
-								break;
-							case 5:
-								m_currEvent.basesHit = 5;
-								m_currEvent.eventType = GameEventType.HOME_RUN;
-								break;
-						}
+			//// Check for fixable errors with missed hits
+			//if(m_currEvent.eventType == GameEventType.UNKNOWN)
+			//{
+			//	// Look to see if the batter got on base
+			//	foreach(var runner in m_currEvent.baseRunners)
+			//	{
+			//		if(runner.runnerId == m_currEvent.batterId)
+			//		{
+			//			switch(runner.baseAfterPlay)
+			//			{
+			//				case 1:
+			//					m_currEvent.eventType = GameEventType.SINGLE;
+			//					m_currEvent.basesHit = 1;
+			//					break;
+			//				case 2:
+			//					m_currEvent.eventType = GameEventType.DOUBLE;
+			//					m_currEvent.basesHit = 2;
+			//					break;
+			//				case 3:
+			//					m_currEvent.eventType = GameEventType.TRIPLE;
+			//					m_currEvent.basesHit = 3;
+			//					break;
+			//				case 4:
+			//					m_currEvent.basesHit = 4;
+			//					if (newState.BatterTeamBases == 4)
+			//					{
+			//						m_currEvent.eventType = GameEventType.HOME_RUN;
+			//					}
+			//					else
+			//					{
+			//						m_currEvent.eventType = GameEventType.QUADRUPLE;
+			//					}
+			//					break;
+			//				case 5:
+			//					m_currEvent.basesHit = 5;
+			//					m_currEvent.eventType = GameEventType.HOME_RUN;
+			//					break;
+			//			}
 
-						// Some kind of hit!
-						m_currEvent.pitchesList.Add('X');
-						AddFixedError(m_currEvent, $"Found the batter apparently hit a {m_currEvent.eventType} without us seeing it, but fixed it.");
-					}
-				}
-			}
+			//			// Some kind of hit!
+			//			m_currEvent.pitchesList.Add('X');
+			//			AddFixedError(m_currEvent, $"Found the batter apparently hit a {m_currEvent.eventType} without us seeing it, but fixed it.");
+			//		}
+			//	}
+			//}
 
 			// Last thing - if we just changed innings, clear the responsible pitcher list
 			// Note that we do this AFTER attributing baserunners who may have just done something on this play
@@ -849,48 +850,45 @@ namespace Cauldron
 			}
 
 			// Don't trust the batter counts when we change innings
-			if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
+			//if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
 
-				// Game updates have a batter count per team, so the lineup position is that % 9
-				if (newState.topOfInning)
-				{
-					m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
-					if(m_currEvent.lineupPosition >= 0)
-					{
-						if (m_currEvent.batterId != null)
-						{
-							m_awayPlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
-						}
-						else
-						{
-							AddFixedError(m_currEvent, $"Setting player based on lineup");
-							m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
-						}
-					}
-				}
-				else 
-				{
-					m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
-					if (m_currEvent.lineupPosition >= 0)
-					{
-						if (m_currEvent.batterId != null)
-						{
-							m_homePlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
-						}
-						else
-						{
+			//	// Game updates have a batter count per team, so the lineup position is that % 9
+			//	if (newState.topOfInning)
+			//	{
+			//		m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
+			//		if(m_currEvent.lineupPosition >= 0)
+			//		{
+			//			if (m_currEvent.batterId != null)
+			//			{
+			//				m_awayPlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+			//			}
+			//			else
+			//			{
+			//				AddFixedError(m_currEvent, $"Setting player based on lineup");
+			//				m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
+			//			}
+			//		}
+			//	}
+			//	else 
+			//	{
+			//		m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
+			//		if (m_currEvent.lineupPosition >= 0)
+			//		{
+			//			if (m_currEvent.batterId != null)
+			//			{
+			//				m_homePlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
+			//			}
+			//			else
+			//			{
 							
-							AddFixedError(m_currEvent, $"Setting player based on lineup");
-							m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
-						}
-					}
-				}
-			}
+			//				AddFixedError(m_currEvent, $"Setting player based on lineup");
+			//				m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
+			//			}
+			//		}
+			//	}
+			//}
 		}
 
-
-
-		
 		class OutcomeMatcher
 		{
 			Regex m_regex;
@@ -1083,6 +1081,18 @@ namespace Cauldron
 		/// </summary>
 		private void ErrorCheckBeforeEmit(GameEvent toEmit)
 		{
+			// Game Over events can't really have errors
+			if(toEmit.isLastGameEvent == true || toEmit.eventType == GameEventType.GAME_OVER)
+			{
+				return;
+			}
+
+			// UNKNOWN_OUT events are already as fixed as they can get
+			if(toEmit.eventType == GameEventType.UNKNOWN_OUT)
+			{
+				return;
+			}
+
 			if(toEmit.baseRunners.Count > 0)
 			{
 				foreach(var runner in toEmit.baseRunners)
@@ -1182,13 +1192,15 @@ namespace Cauldron
 				return true;
 			}
 			else if(m_inningState == InningState.BatterMessage && 
-				(newState.BatterId != null))
+				(newState.BatterId != null) &&
+				(newState.BatterId == m_oldState.BatterId))
 			{
 				m_inningState = InningState.ValidBatter;
 				return true;
 			}
 			else if((m_inningState == InningState.ValidBatter || m_inningState == InningState.BatterMessage) && 
-				(newState.BatterId == null))
+				(newState.BatterId == null) &&
+				(newState.gameComplete == false))
 			{
 				m_inningState = InningState.PlayEnded;
 				return true;
@@ -1206,7 +1218,81 @@ namespace Cauldron
 				return true;
 			}
 
+			//////////////////////////
+			// FAILURE STATES
+
+			if(newState.lastUpdate.Contains("batting for the"))
+			{
+				// Bad transition, but we know we're back in BatterMessage
+				m_inningState = InningState.BatterMessage;
+			}
+			else if(newState.lastUpdate.StartsWith("Top of") || newState.lastUpdate.StartsWith("Bottom of"))
+			{
+				// Bad transition, but we know we're back in HalfInningStart
+				m_inningState = InningState.HalfInningStart;
+			}
+			else if(newState.gameComplete == true)
+			{
+				m_inningState = InningState.GameOver;
+			}
+			else if(newState.BatterId == null)
+			{
+				m_inningState = InningState.PlayEnded;
+			}
+			else if(newState.BatterId != null)
+			{
+				m_inningState = InningState.ValidBatter;
+			}
+
 			return false;
+		}
+
+		public int outsBetween(Game oldState, Game newState)
+		{
+			if (newState.gameComplete)
+			{
+				// On game complete it resets to 0 outs, ugh
+				// So pretend we were passed the next half-inning
+				var inning = newState.topOfInning ? newState.inning : newState.inning + 1;
+				var top = !newState.topOfInning;
+
+				return outsBetween(oldState.inning, oldState.topOfInning, oldState.halfInningOuts, inning, top, newState.halfInningOuts);
+			}
+			else
+			{
+				return outsBetween(oldState.inning, oldState.topOfInning, oldState.halfInningOuts, newState.inning, newState.topOfInning, newState.halfInningOuts);
+			}
+		}
+
+		public int outsBetween(int startInning, bool startTop, int startOuts, int endinning, bool endTop, int endOuts)
+		{
+			int currInning = startInning;
+			bool currTop = startTop;
+			int currOuts = startOuts;
+
+			int outsBetween = 0;
+			while(!(currInning == endinning && currTop == endTop && currOuts == endOuts))
+			{
+				currOuts++;
+				outsBetween++;
+
+				if(currOuts == 3)
+				{
+					if(currTop)
+					{
+						currTop = false;
+						currOuts = 0;
+					}
+					else
+					{
+						currTop = true;
+						currInning++;
+						currOuts = 0;
+					}
+				}
+			}
+
+			return outsBetween;
 		}
 
 		/// <summary>
@@ -1241,10 +1327,87 @@ namespace Cauldron
 
 			bool validInningState = CheckInningState(newState);
 
-			//if (!validInningState)
-			//{
-			//	System.Diagnostics.Debugger.Break();
-			//}
+			// DATA GAP DETECTION
+			// If we had an invalid transition on our inning state machine, something weird happened
+			if(!validInningState)
+			{
+				int missedOuts = outsBetween(m_oldState, newState);
+
+				int currInning = m_oldState.inning;
+				bool currTop = m_oldState.topOfInning;
+				int currOuts = m_oldState.halfInningOuts;
+
+				// If we ended up in a PlayEnded state, this event is an out
+				if(m_inningState == InningState.PlayEnded)
+				{
+					// So we didn't miss this one
+					missedOuts--;
+				}
+
+				// Fill in any fully missing outs; the last out will be part of this event one way or another
+				for(int i = 0; i < missedOuts; i++)
+				{
+					if(m_currEvent == null)
+					{
+						m_currEvent = CreateNewGameEvent(newState, timeStamp);
+					}
+					m_currEvent.fixedError = true;
+					m_currEvent.fixedErrorList.Add("Dummy event for missing out");
+					m_currEvent.eventType = GameEventType.UNKNOWN_OUT;
+					m_currEvent.eventText.Add("Unknown out.");
+					m_currEvent.inning = currInning;
+					m_currEvent.topOfInning = currTop;
+					m_currEvent.outsBeforePlay = currOuts;
+					m_currEvent.outsOnPlay = 1;
+					m_currEvent.baseRunners = new List<GameEventBaseRunner>();
+
+					m_currEvent.batterTeamId = currTop ? newState.awayTeam : newState.homeTeam;
+					m_currEvent.batterId = currTop ? newState.awayBatter : newState.homeBatter;
+					m_currEvent.pitcherTeamId = currTop ? newState.homeTeam : newState.awayTeam;
+					m_currEvent.pitcherId = currTop ? newState.homePitcher : newState.awayPitcher;
+					
+					m_eventIndex++;
+
+					// Increment to the next out
+					currOuts++;
+					if (currOuts == 3)
+					{
+						if (currTop)
+						{
+							currTop = false;
+							currOuts = 0;
+						}
+						else
+						{
+							currTop = true;
+							currInning++;
+							currOuts = 0;
+						}
+					}
+
+					// After incrementing, advance the "old state" to where we are now
+					m_oldState = m_oldState.ShallowCopy();
+					m_oldState.halfInningOuts = currOuts;
+					m_oldState.inning = currInning;
+					m_oldState.topOfInning = currTop;
+					// We're just simulating unknown outs, we can't keep track of baserunners
+					m_oldState.basesOccupied.Clear();
+					m_oldState.baseRunners.Clear();
+
+					EmitEvent(newState, timeStamp, true);
+				}
+
+				// If needed, set up an event we're creating with the correct adjusted "before" state
+				m_currEvent = CreateNewGameEvent(newState, timeStamp);
+				m_currEvent.outsBeforePlay = currOuts;
+				m_currEvent.inning = currInning;
+				m_currEvent.topOfInning = currTop;
+
+				m_currEvent.batterTeamId = currTop ? newState.awayTeam : newState.homeTeam;
+				m_currEvent.batterId = currTop ? newState.awayBatter : newState.homeBatter;
+				m_currEvent.pitcherTeamId = currTop ? newState.homeTeam : newState.awayTeam;
+				m_currEvent.pitcherId = currTop ? newState.homePitcher : newState.awayPitcher;
+			}
 
 			if (m_currEvent == null)
 			{
@@ -1308,8 +1471,9 @@ namespace Cauldron
 			IsGameComplete = newState.gameComplete;
 			if(IsGameComplete)
 			{
+				m_currEvent.eventType = GameEventType.GAME_OVER;
 				// Just complete however many outs
-				m_currEvent.outsOnPlay = 3 - m_currEvent.outsBeforePlay;
+				//m_currEvent.outsOnPlay = 3 - m_currEvent.outsBeforePlay;
 			}
 
 			// Store original update text for reference
