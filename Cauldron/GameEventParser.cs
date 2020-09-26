@@ -219,8 +219,14 @@ namespace Cauldron
 					(newState.inning - oldState.inning <= 1));
 		}
 
-		private bool IsStartOfInningMessage(Game newState) {
+		private bool IsStartOfInningMessage(Game newState) 
+		{
 			return (newState.lastUpdate.Contains("Top of ") || newState.lastUpdate.Contains("Bottom of "));
+		}
+
+		private bool IsNewBatterMessage(Game newState)
+		{
+			return newState.lastUpdate.Contains("batting for the");
 		}
 
 		private bool IsGameNearlyOver(Game oldState, Game newState)
@@ -229,44 +235,6 @@ namespace Cauldron
 					(oldState.halfInningOuts == 2 && newState.halfInningOuts == 0) &&
 					((!newState.topOfInning) || (newState.topOfInning && newState.homeScore > newState.awayScore)));
 		}
-
-		private bool IsStartOfNextAtBat(Game oldState, Game newState, int tolerance = 0)
-		{
-			// Assumes no gaps
-			int totalBattingGap = (newState.homeTeamBatterCount - oldState.homeTeamBatterCount) +
-								  (newState.awayTeamBatterCount - oldState.awayTeamBatterCount);
-
-			bool sameTeam = ((totalBattingGap == 1) &&
-							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
-		
-			bool diffTeam = ((IsNextHalfInning(oldState, newState) || IsGameNearlyOver(oldState, newState)) &&
-							 ((totalBattingGap == 0) || (totalBattingGap == -1 && newState.lastUpdate.Contains("caught"))) &&
-							 (newState.atBatStrikes + newState.atBatBalls <= tolerance));
-
-			bool startOfGame = ((newState.inning == 0 && newState.topOfInning == true )&&
-								(oldState.homeTeamBatterCount == 0) &&
-								(oldState.awayTeamBatterCount == 0) &&
-								(newState.homeTeamBatterCount == -1) &&
-								(newState.awayTeamBatterCount == -1));
-
-			return sameTeam || diffTeam || startOfGame;
-		}
-
-		private bool IsEndOfCurrentAtBat(Game oldState, Game newState) {
-			// Assumes no gaps
-			return ((newState.atBatBalls <= oldState.atBatBalls) && 
-					(newState.atBatStrikes <= oldState.atBatStrikes) &&
-					(newState.atBatStrikes == 0 && newState.atBatBalls == 0));
-		}
-
-		private bool IsSameAtBat(Game oldState, Game newState)
-		{
-			return ((oldState.inning == newState.inning) &&
-					(oldState.topOfInning == newState.topOfInning) &&
-					(oldState.homeTeamBatterCount == newState.homeTeamBatterCount) &&
-					(oldState.awayTeamBatterCount == newState.awayTeamBatterCount));
-		}
-
 
 
 
@@ -325,14 +293,15 @@ namespace Cauldron
 		{
 			int newStrikes = 0;
 			int newBalls = 0;
-			if(IsSameAtBat(m_oldState, newState) && !IsEndOfCurrentAtBat(m_oldState, newState))
+
+			if(m_inningState == InningState.ValidBatter)
 			{
 				newStrikes = newState.atBatStrikes - m_currEvent.totalStrikes;
 				newBalls = newState.atBatBalls - m_currEvent.totalBalls;
 				m_currEvent.totalBalls = newState.atBatBalls;
 				m_currEvent.totalStrikes = newState.atBatStrikes;
 			}
-			else if(IsSameAtBat(m_oldState, newState) && IsEndOfCurrentAtBat(m_oldState, newState))
+			else if(m_inningState == InningState.PlayEnded)
 			{
 				// If a batter strikes out we never get an update with 3 strikes on it
 				// so check the play text
@@ -355,17 +324,17 @@ namespace Cauldron
 				}
 
 			}
-			else if(IsStartOfNextAtBat(m_oldState, newState, 2))
-			{
-				newStrikes = newState.atBatStrikes;
-				newBalls = newState.atBatBalls;
-			}
-			// This else case should return so we can assume we are only covering one event below
-			else
-			{
-				//AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
-				return;
-			}
+			//else if(IsStartOfNextAtBat(m_oldState, newState, 2))
+			//{
+			//	newStrikes = newState.atBatStrikes;
+			//	newBalls = newState.atBatBalls;
+			//}
+			//// This else case should return so we can assume we are only covering one event below
+			//else
+			//{
+			//	//AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
+			//	return;
+			//}
 
 			// Oops, we hit a gap, lets see if we can fill it in
 			if(newStrikes + newBalls > 1)
@@ -1170,27 +1139,32 @@ namespace Cauldron
 		}
 
 
-		
+		// Checks the new message and advances the inning state machine
+		// Returns TRUE on a valid transition and FALSE on an invalid one (meaning a data gap)
 		public bool CheckInningState(Game newState)
 		{
+			// Init can transition to GameStart when it sees "Play Ball!"
 			if(m_inningState == InningState.Init && 
 				newState.lastUpdate.Contains("Play ball!"))
 			{
 				m_inningState = InningState.GameStart;
 				return true;
 			}
+			// GameStart goes to HalfInningStart on a "Top of" or "Bottom of"
 			else if((m_inningState == InningState.GameStart || m_inningState == InningState.PlayEnded) && 
-				(newState.lastUpdate.StartsWith("Top of") || newState.lastUpdate.StartsWith("Bottom of")))
+				IsStartOfInningMessage(newState))
 			{
 				m_inningState = InningState.HalfInningStart;
 				return true;
 			}
+			// HalfInningStart and PlayEnded both go to BatterMessage on a "batting for the"
 			else if((m_inningState == InningState.HalfInningStart || m_inningState == InningState.PlayEnded) &&
-				(newState.lastUpdate.Contains("batting for the")))
+				IsNewBatterMessage(newState))
 			{
 				m_inningState = InningState.BatterMessage;
 				return true;
 			}
+			// BatterMessage goes to ValidBatter on an update with a non-null batter ID
 			else if(m_inningState == InningState.BatterMessage && 
 				(newState.BatterId != null) &&
 				(newState.BatterId == m_oldState.BatterId))
@@ -1198,6 +1172,7 @@ namespace Cauldron
 				m_inningState = InningState.ValidBatter;
 				return true;
 			}
+			// ValidBatter and BatterMessage can both go to PlayEnded on a null batter ID
 			else if((m_inningState == InningState.ValidBatter || m_inningState == InningState.BatterMessage) && 
 				(newState.BatterId == null) &&
 				(newState.gameComplete == false))
@@ -1205,12 +1180,14 @@ namespace Cauldron
 				m_inningState = InningState.PlayEnded;
 				return true;
 			}
+			// ValidBatter stays in the same state as long as the same batter is up
 			else if(m_inningState == InningState.ValidBatter && 
 				(newState.BatterId == m_oldState.BatterId))
 			{
 				// Stay in ValidBatter
 				return true;
 			}
+			// PlayEnded can go to GameOver when the game completes
 			else if(m_inningState == InningState.PlayEnded &&
 				(newState.gameComplete == true ))
 			{
@@ -1220,17 +1197,19 @@ namespace Cauldron
 
 			//////////////////////////
 			// FAILURE STATES
+			// All the valid transitions were above - below we need to return FALSE but still get ourselves back into the correct state
 
-			if(newState.lastUpdate.Contains("batting for the"))
+			if(IsNewBatterMessage(newState))
 			{
 				// Bad transition, but we know we're back in BatterMessage
 				m_inningState = InningState.BatterMessage;
 			}
-			else if(newState.lastUpdate.StartsWith("Top of") || newState.lastUpdate.StartsWith("Bottom of"))
+			else if(IsStartOfInningMessage(newState))
 			{
 				// Bad transition, but we know we're back in HalfInningStart
 				m_inningState = InningState.HalfInningStart;
 			}
+			// Check for GameOver before PlayEnded because they both have a null batter ID
 			else if(newState.gameComplete == true)
 			{
 				m_inningState = InningState.GameOver;

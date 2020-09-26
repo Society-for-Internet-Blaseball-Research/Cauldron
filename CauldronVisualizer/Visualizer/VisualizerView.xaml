@@ -64,6 +64,15 @@
                 Content="Clear"
                 Command="{Binding ClearFilterCommand}"
                 />
+            <Button
+                IsEnabled="{Binding LoadSaveEnabled}"
+                Style="{StaticResource BaseStyle}"
+                BorderBrush="Coral"
+                Width="120"
+                Margin="5"
+                Content="Load From Reblase"
+                Command="{Binding LoadFromReblaseCommand}"
+                />
         </StackPanel>
 
         <TextBlock

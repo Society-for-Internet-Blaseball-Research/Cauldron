@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -104,6 +105,8 @@ namespace CauldronVisualizer
 		public ICommand LoadUpdatesCommand => m_loadUpdatesCommand;
 		DelegateCommand m_loadUpdatesCommand;
 
+		public ICommand LoadFromReblaseCommand => m_loadUpdatesFromReblaseCommand;
+		DelegateCommand m_loadUpdatesFromReblaseCommand;
 		public ICommand LoadUpdatesFromS3Command => m_loadUpdatesFromS3Command;
 		DelegateCommand m_loadUpdatesFromS3Command;
 		public ICommand LoadEventsCommand => m_loadEventsCommand;
@@ -189,6 +192,7 @@ namespace CauldronVisualizer
 			m_loadUpdatesCommand = new DelegateCommand(ChooseLoadUpdateFile);
 			m_loadEventsCommand = new DelegateCommand(ChooseLoadEventsFile);
 			m_loadUpdatesFromS3Command = new DelegateCommand(ChooseS3LogFile);
+			m_loadUpdatesFromReblaseCommand = new DelegateCommand(ChooseReblaseGame);
 			m_saveUpdatesCommand = new DelegateCommand(ChooseSaveUpdatesFile);
 			m_saveEventsCommand = new DelegateCommand(ChooseSaveEventsFile);
 
@@ -386,6 +390,38 @@ namespace CauldronVisualizer
 			view.Show();
 		}
 
+		public void ChooseReblaseGame(object param)
+		{
+			string gameId = FilterText;
+
+			using (var client = new WebClient())
+			{
+				try
+				{
+					string json = client.DownloadString($"https://reblase.sibr.dev/newapi/games/updates?game={gameId}&started=true&count=500");
+
+					var opts = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
+
+					var result = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json, opts);
+
+					GameUpdates.Clear();
+					foreach (var dict in result)
+					{
+						var gameText = ((JsonElement)dict["data"]).GetRawText();
+						Game game = JsonSerializer.Deserialize<Game>(gameText, opts);
+
+						var timeText = ((JsonElement)dict["timestamp"]).GetRawText();
+						game.timestamp = JsonSerializer.Deserialize<DateTime>(timeText, opts);
+						AddGame(game);
+					}
+				}
+				catch (Exception ex)
+				{
+					Debugger.Break();
+				}
+			}
+		}
+
 		public void ChooseSaveEventsFile(object param)
 		{
 			SaveFileDialog dialog = new SaveFileDialog();
@@ -401,6 +437,12 @@ namespace CauldronVisualizer
 			m_convertCommand.RaiseCanExecuteChanged();
 		}
 
+		internal void AddGame(Game g)
+		{
+			GameUpdates.Add(new GameUpdateVm(g, m_teamLookup));
+			m_convertCommand.RaiseCanExecuteChanged();
+		}
+
 		internal void AddUpdate(Update u)
 		{
 			if (u.Schedule != null)
@@ -411,10 +453,9 @@ namespace CauldronVisualizer
 					{
 						s.timestamp = u.clientMeta.timestamp;
 					}
-					GameUpdates.Add(new GameUpdateVm(s, m_teamLookup));
+					AddGame(s);
 				}
 			}
-			m_convertCommand.RaiseCanExecuteChanged();
 		}
 
 		internal async Task AsyncLoadUpdates(string file)
