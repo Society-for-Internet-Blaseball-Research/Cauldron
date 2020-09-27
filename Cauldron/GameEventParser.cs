@@ -30,6 +30,16 @@ namespace Cauldron
 		public string LosingPitcherId;
 	}
 
+	public class GameEventCompleteEventArgs
+	{
+		public GameEventCompleteEventArgs(GameEvent ev)
+		{
+			GameEvent = ev;
+		}
+
+		public GameEvent GameEvent;
+	}
+
 	public enum InningState
 	{
 		Init,
@@ -85,6 +95,9 @@ namespace Cauldron
 		HttpClient m_client;
 
 		public event EventHandler<GameCompleteEventArgs> GameComplete;
+
+		public event EventHandler<GameEventCompleteEventArgs> EventComplete;
+
 		public bool IsGameComplete
 		{
 			get; set;
@@ -1136,6 +1149,7 @@ namespace Cauldron
 			ErrorCheckBeforeEmit(emitted);
 			m_gameEvents.Add(emitted);
 
+			EventComplete?.Invoke(this, new GameEventCompleteEventArgs(m_currEvent));
 		}
 
 

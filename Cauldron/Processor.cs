@@ -46,6 +46,14 @@ namespace Cauldron
 		{
 			GameComplete?.Invoke(this, e);
 		}
+
+		public event EventHandler<GameEventCompleteEventArgs> EventComplete;
+
+		private void GameEventCompleteInternal(object sender, GameEventCompleteEventArgs e)
+		{
+			EventComplete?.Invoke(this, e);
+		}
+		
 		#endregion
 
 
