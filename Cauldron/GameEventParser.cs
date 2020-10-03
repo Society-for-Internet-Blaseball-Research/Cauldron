@@ -831,69 +831,36 @@ namespace Cauldron
 				m_currEvent.isLeadoff = true;
 			}
 
-			// Don't trust the batter counts when we change innings
-			//if(!IsNextHalfInning(m_oldState, newState) && !IsStartOfInningMessage(newState)){
-
-			//	// Game updates have a batter count per team, so the lineup position is that % 9
-			//	if (newState.topOfInning)
-			//	{
-			//		m_currEvent.lineupPosition = newState.awayTeamBatterCount % 9;
-			//		if(m_currEvent.lineupPosition >= 0)
-			//		{
-			//			if (m_currEvent.batterId != null)
-			//			{
-			//				m_awayPlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
-			//			}
-			//			else
-			//			{
-			//				AddFixedError(m_currEvent, $"Setting player based on lineup");
-			//				m_currEvent.batterId = m_awayPlayerLineup[m_currEvent.lineupPosition];
-			//			}
-			//		}
-			//	}
-			//	else 
-			//	{
-			//		m_currEvent.lineupPosition = newState.homeTeamBatterCount % 9;
-			//		if (m_currEvent.lineupPosition >= 0)
-			//		{
-			//			if (m_currEvent.batterId != null)
-			//			{
-			//				m_homePlayerLineup[m_currEvent.lineupPosition] = m_currEvent.batterId;
-			//			}
-			//			else
-			//			{
-							
-			//				AddFixedError(m_currEvent, $"Setting player based on lineup");
-			//				m_currEvent.batterId = m_homePlayerLineup[m_currEvent.lineupPosition];
-			//			}
-			//		}
-			//	}
-			//}
+			if(newState.lastUpdate.Contains("is Shelled and cannot escape!"))
+			{
+				m_currEvent.eventType = GameEventType.SHELLED_ATBAT;
+				// TODO: deduce the player ID
+			}
 		}
 
 		class OutcomeMatcher
 		{
-			Regex m_regex;
-			IList<(string, int)> m_playerOutcomes;
+			string m_regex;
+			IList<(string, string)> m_playerOutcomes;
 			IList<string> m_noneOutcomes;
 
-			public OutcomeMatcher(string r, IList<(string, int)> p)
+			public OutcomeMatcher(string r, IList<(string, string)> p)
 			{
-				m_regex = new Regex(r);
+				m_regex = r;
 				m_playerOutcomes = p;
 				m_noneOutcomes = new List<string>();
 			}
 
 			public OutcomeMatcher(OutcomeDefinition od)
 			{
-				m_regex = new Regex(od.Regex);
-				m_playerOutcomes = new List<(string, int)>();
+				m_regex = od.Regex;
+				m_playerOutcomes = new List<(string, string)>();
 				m_noneOutcomes = new List<string>();
 				foreach(var o in od.Entities)
 				{
 					if(o.EntityType == "player")
 					{
-						m_playerOutcomes.Add((o.OutcomeType, o.Index));
+						m_playerOutcomes.Add((o.OutcomeType, o.CaptureName));
 					}
 					if(o.EntityType == "none")
 					{
@@ -936,7 +903,7 @@ namespace Cauldron
 
 			public async Task Process(HttpClient client, GameEvent ev, string update)
 			{
-				var match = m_regex.Match(update);
+				var match = Regex.Match(update, m_regex, RegexOptions.ExplicitCapture);
 				if(match.Success)
 				{
 					foreach(var kvp in m_playerOutcomes)
@@ -953,8 +920,8 @@ namespace Cauldron
 			}
 		}
 
-		private static Regex feedbackRegex = new Regex(@".*feedback.*\.\.\. (.+) is now up to bat\.");
-		private static Regex teamReverbRegex = new Regex(@"Reverberations are at (\w+) levels! The (.+) lost (.+)");
+		private static string feedbackRegex = @".*feedback.*\.\.\. (.+) is now up to bat\.";
+		private static string teamReverbRegex = @"Reverberations are at (?:\w+) levels! The (.+) lost (.+)";
 
 		private List<OutcomeMatcher> m_outcomeMatchers;
 
@@ -972,26 +939,26 @@ namespace Cauldron
 			}
 			else
 			{
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
-					new List<(string, int)>() { (OutcomeType.DEBT_PAID, 2), (OutcomeType.UNSTABLE_CHAINED, 6) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
-					new List<(string, int)>() { (OutcomeType.BEANED_HITTER, 1), (OutcomeType.BEANED_PITCHER, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
-					new List<(string, int)>() { (OutcomeType.BLOOD_DRAIN_SIPHONER, 1), (OutcomeType.BLOOD_DRAIN_VICTIM, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
-					new List<(string, int)>() { (OutcomeType.FEEDBACK_BLOCKED, 1), (OutcomeType.FEEDBACK_BLOCKED, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
-					new List<(string, int)>() { (OutcomeType.INCINERATION, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
-					new List<(string, int)>() { (OutcomeType.SHELL_CRACKED, 1) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
-					new List<(string, int)>() { (OutcomeType.PARTYING, 1) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
-					new List<(string, int)>() { (OutcomeType.REVERB_PLAYER, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
-					new List<(string, int)>() { (OutcomeType.PEANUT_GOOD, 2) }));
-				m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
-					new List<(string, int)>() { (OutcomeType.PEANUT_BAD, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
+				//	new List<(string, int)>() { (OutcomeType.DEBT_PAID, 2), (OutcomeType.UNSTABLE_CHAINED, 6) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
+				//	new List<(string, int)>() { (OutcomeType.BEANED_HITTER, 1), (OutcomeType.BEANED_PITCHER, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
+				//	new List<(string, int)>() { (OutcomeType.BLOOD_DRAIN_SIPHONER, 1), (OutcomeType.BLOOD_DRAIN_VICTIM, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
+				//	new List<(string, int)>() { (OutcomeType.FEEDBACK_BLOCKED, 1), (OutcomeType.FEEDBACK_BLOCKED, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
+				//	new List<(string, int)>() { (OutcomeType.INCINERATION, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
+				//	new List<(string, int)>() { (OutcomeType.SHELL_CRACKED, 1) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
+				//	new List<(string, int)>() { (OutcomeType.PARTYING, 1) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
+				//	new List<(string, int)>() { (OutcomeType.REVERB_PLAYER, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
+				//	new List<(string, int)>() { (OutcomeType.PEANUT_GOOD, 2) }));
+				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
+				//	new List<(string, int)>() { (OutcomeType.PEANUT_BAD, 2) }));
 			}
 		}
 
@@ -1002,7 +969,7 @@ namespace Cauldron
 				await matcher.Process(m_client, m_currEvent, newState.lastUpdate);
 			}
 
-			var match = feedbackRegex.Match(newState.lastUpdate);
+			var match = Regex.Match(newState.lastUpdate, feedbackRegex);
 			if(match.Success)
 			{
 				// Old player
@@ -1015,11 +982,11 @@ namespace Cauldron
 				await OutcomeMatcher.CreateAndAddPlayerOutcome(m_client, m_currEvent, newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
 			}
 
-			match = teamReverbRegex.Match(newState.lastUpdate);
+			match = Regex.Match(newState.lastUpdate, teamReverbRegex);
 			if(match.Success)
 			{
-				var teamName = match.Groups[2].Value;
-				var status = match.Groups[3].Value;
+				var teamName = match.Groups[1].Value;
+				var status = match.Groups[2].Value;
 
 				Outcome e = new Outcome(newState.lastUpdate);
 				if (newState.homeTeamNickname == teamName)
@@ -1149,7 +1116,7 @@ namespace Cauldron
 			ErrorCheckBeforeEmit(emitted);
 			m_gameEvents.Add(emitted);
 
-			EventComplete?.Invoke(this, new GameEventCompleteEventArgs(m_currEvent));
+			EventComplete?.Invoke(this, new GameEventCompleteEventArgs(emitted));
 		}
 
 
@@ -1242,7 +1209,8 @@ namespace Cauldron
 
 		public int outsBetween(Game oldState, Game newState)
 		{
-			if (newState.gameComplete)
+			if (newState.gameComplete || 
+				(oldState.inning >= 8 && oldState.inning == newState.inning && oldState.topOfInning == newState.topOfInning && oldState.halfInningOuts == 2 && newState.halfInningOuts == 0))
 			{
 				// On game complete it resets to 0 outs, ugh
 				// So pretend we were passed the next half-inning
@@ -1259,6 +1227,11 @@ namespace Cauldron
 
 		public int outsBetween(int startInning, bool startTop, int startOuts, int endinning, bool endTop, int endOuts)
 		{
+			if (endinning < startInning || startInning == endinning && startTop == endTop && endOuts < startOuts)
+			{
+				//throw new InvalidOperationException("End time is before start time");
+				return 0;
+			}
 			int currInning = startInning;
 			bool currTop = startTop;
 			int currOuts = startOuts;
@@ -1358,8 +1331,6 @@ namespace Cauldron
 					m_currEvent.batterId = currTop ? newState.awayBatter : newState.homeBatter;
 					m_currEvent.pitcherTeamId = currTop ? newState.homeTeam : newState.awayTeam;
 					m_currEvent.pitcherId = currTop ? newState.homePitcher : newState.awayPitcher;
-					
-					m_eventIndex++;
 
 					// Increment to the next out
 					currOuts++;

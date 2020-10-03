@@ -9,7 +9,7 @@ namespace Cauldron
 		public string OutcomeType { get; set; }
 
 		public string EntityType { get; set; }
-		public int Index { get; set; }
+		public string CaptureName { get; set; }
 	}
 
 	public class OutcomeDefinition

@@ -80,6 +80,7 @@ namespace Cauldron
 			if (!m_trackedGames.ContainsKey(game.gameId))
 			{
 				GameEventParser parser = new GameEventParser();
+				parser.EventComplete += GameEventCompleteInternal;
 				parser.GameComplete += GameCompleteInternal;
 				parser.StartNewGame(game, timestamp);
 

@@ -1,136 +1,146 @@
 [
 	{
-		"regex": "A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
+		"regex": "A Debt was collected.*(pitch|hitt)er (?<target>.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (?<chainee>.+)!",
 		"entities": [
 			{
 				"outcomeType": "DEBT_PAID",
 				"entityType": "player",
-				"index": 2
+				"captureName":  "target"
 			},
 			{
 				"outcomeType": "UNSTABLE_CHAINED",
 				"entityType": "player",
-				"index": 6
+				"captureName": "chainee"
 			}
 		]
 	},
 	{
-		"regex": "(.+) hits (.+) with a pitch! (.+) is now Unstable!",
+		"regex": "(?<pitcher>.+) hits (?<hitter>.+) with a pitch! (.+) is now Unstable!",
 		"entities": [
 			{
 				"outcomeType": "BEANED_HITTER",
 				"entityType": "player",
-				"index": 1
+				"captureName": "hitter"
 			},
 			{
 				"outcomeType": "BEANED_PITCHER",
 				"entityType": "player",
-				"index": 2
+				"captureName": "pitcher"
 			}
 		]
 	},
 	{
-		"regex": "The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s.*",
 		"entities": [
 			{
 				"outcomeType": "BLOOD_DRAIN_SIPHONER",
 				"entityType": "player",
-				"index": 1
+				"captureName": "siphoner"
 			},
 			{
 				"outcomeType": "BLOOD_DRAIN_VICTIM",
 				"entityType": "player",
-				"index": 2
+				"captureName": "siphonee"
 			}
 		]
 	},
 	{
-		"regex": "Reality begins to flicker...but (.+) resists! (.+) is affect",
+		"regex": "Reality begins to flicker...but (?<resister>.+) resists! (?<other>.+) is affect",
 		"entities": [
 			{
 				"outcomeType": "FEEDBACK_BLOCKED",
 				"entityType": "player",
-				"index": 1
+				"captureName": "resister"
 			},
 			{
 				"outcomeType": "FEEDBACK_BLOCKED",
 				"entityType": "player",
-				"index": 2
+				"captureName": "other"
 			}
 		]
 	},
 	{
-		"regex": ".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
+		"regex": ".*incinerated.*(pitch|hitt)er (?<victim>.+)! Replaced by (.+)",
 		"entities": [
 			{
 				"outcomeType": "INCINERATION",
 				"entityType": "player",
-				"index": 2
+				"captureName": "victim"
 			}
 		]
 	},
 	{
-		"regex": "The Birds pecked (.+) free!",
+		"regex": "The Birds pecked (?<freed>.+) free!",
 		"entities": [
 			{
 				"outcomeType": "SHELL_CRACKED",
 				"entityType": "player",
-				"index": 1
+				"captureName": "freed"
 			}
 		]
 	},
 	{
-		"regex": "(.+) is partying!",
+		"regex": "(?<partier>.+) is partying!",
 		"entities": [
 			{
 				"outcomeType": "PARTYING",
 				"entityType": "player",
-				"index": 1
+				"captureName": "partier"
 			}
 		]
 	},
 	{
-		"regex": "Reverberations are at (\\w+) levels! (.+) is now .*",
+		"regex": "Reverberations are at (\\w+) levels! (?<player>.+) is now .*",
 		"entities": [
 			{
 				"outcomeType": "REVERB_PLAYER",
 				"entityType": "player",
-				"index": 2
+				"captureName": "player"
 			}
 		]
 	},
 	{
-		"regex": ".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
+		"regex": ".*(pitch|hitt)er (?<eater>.+) swallowed.*had a yummy reaction!",
 		"entities": [
 			{
 				"outcomeType": "PEANUT_GOOD",
 				"entityType": "player",
-				"index": 2
+				"captureName": "eater"
 			}
 		]
 	},
 	{
-		"regex": ".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
+		"regex": ".*(pitch|hitt)er (?<eater>.+) swallowed.*had an allergic reaction!",
 		"entities": [
 			{
 				"outcomeType": "PEANUT_BAD",
 				"entityType": "player",
-				"index": 2
+				"captureName": "eater"
 			}
 		]
 	},
 	{
-		"regex": "(.+) hits (.+) with a pitch! (.+) is now Flickering!",
+		"regex": "(?<pitcher>.+) hits (?<hitter>.+) with a pitch! (.+) is now Flickering!",
 		"entities": [
 			{
 				"outcomeType": "BEANED_FLICKERING_HITTER",
 				"entityType": "player",
-				"index": 2
+				"captureName": "hitter"
 			},
 			{
 				"outcomeType": "BEANED_FLICKERING_PITCHER",
 				"entityType": "player",
-				"index": 1
+				"captureName": "pitcher"
+			}
+		]
+	},
+	{
+		"regex": "(?<shelled>.+) is Shelled and cannot escape!",
+		"entities": [
+			{
+				"outcomeType": "SHELLED_ATBAT",
+				"entityType": "player",
+				"captureName": "shelled"
 			}
 		]
 	}
