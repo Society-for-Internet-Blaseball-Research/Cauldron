@@ -107,14 +107,20 @@ namespace Cauldron
 		public IEnumerable<GameEvent> GameEvents => m_gameEvents;
 		private List<GameEvent> m_gameEvents;
 
+		private HashSet<string> m_seenUpdates;
+
 		static JsonSerializerOptions s_outcomeJsonSerOpt = new JsonSerializerOptions() 
 		{ 
 			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 			WriteIndented = true
 		};
 
-		public void StartNewGame(Game initState, DateTime timeStamp)
+		public void StartNewGame(Game initState, DateTime timeStamp, string hash = null)
 		{
+			m_seenUpdates = new HashSet<string>();
+			if(hash != null)
+				m_seenUpdates.Add(hash);
+
 			m_inningState = InningState.Init;
 
 			m_client = new HttpClient();
@@ -186,6 +192,23 @@ namespace Cauldron
 			m_sentGameComplete = false;
 
 			CheckInningState(initState);
+		}
+
+		bool CheckForDuplicateUpdate(string hash)
+		{
+			// If the caller isn't providing a hash, we can only say "not a duplicate"
+			if (hash == null)
+				return false;
+
+			if(m_seenUpdates.Contains(hash))
+			{
+				return true;
+			}
+			else
+			{
+				m_seenUpdates.Add(hash);
+				return false;
+			}
 		}
 
 		#region Inning tracking
@@ -1227,8 +1250,11 @@ namespace Cauldron
 
 		public int outsBetween(int startInning, bool startTop, int startOuts, int endinning, bool endTop, int endOuts)
 		{
-			if (endinning < startInning || startInning == endinning && startTop == endTop && endOuts < startOuts)
+			if (endinning < startInning || 
+				(endinning == startInning && startTop == false && endTop == true) ||
+				(startInning == endinning && startTop == endTop && endOuts < startOuts))
 			{
+				Console.WriteLine($"S{m_oldState.season}D{m_oldState.day} Game {m_oldState.gameId} updates out of order! Old state was timestamp {m_oldState.timestamp}, {(startTop?"Top":"Bot")}{startInning}, {startOuts} outs. New state was {(endTop?"Top":"Bot")}{endinning}, {endOuts} outs.");
 				//throw new InvalidOperationException("End time is before start time");
 				return 0;
 			}
@@ -1267,14 +1293,16 @@ namespace Cauldron
 		/// <param name="newState"></param>
 		/// <param name="timeStamp"></param>
 		/// <returns></returns>
-		public async Task ParseGameUpdate(Game newState, DateTime timeStamp)
+		public async Task ParseGameUpdate(Game newState, DateTime timeStamp, string hash = null)
 		{
-			if(IsGameComplete)
+			bool dupe = CheckForDuplicateUpdate(hash);
+
+			if (IsGameComplete)
 			{
 				m_discards++;
 				return;
 			}
-			if(newState.Equals(m_oldState))
+			if(dupe || newState.Equals(m_oldState))
 			{
 				//Console.WriteLine($"Discarded update from game {newState._id} as a duplicate.");
 				m_discards++;
