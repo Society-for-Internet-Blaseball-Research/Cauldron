@@ -80,7 +80,7 @@
 		]
 	},
 	{
-		"regex": "(?<partier>.+) is partying!",
+		"regex": "(?<partier>.+) is Partying!",
 		"entities": [
 			{
 				"outcomeType": "PARTYING",

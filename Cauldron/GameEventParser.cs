@@ -1254,7 +1254,7 @@ namespace Cauldron
 				(endinning == startInning && startTop == false && endTop == true) ||
 				(startInning == endinning && startTop == endTop && endOuts < startOuts))
 			{
-				Console.WriteLine($"S{m_oldState.season}D{m_oldState.day} Game {m_oldState.gameId} updates out of order! Old state was timestamp {m_oldState.timestamp}, {(startTop?"Top":"Bot")}{startInning}, {startOuts} outs. New state was {(endTop?"Top":"Bot")}{endinning}, {endOuts} outs.");
+				Console.WriteLine($"S{m_oldState.season}D{m_oldState.day} Game {m_oldState.gameId} updates out of order! Old state was {(startTop?"Top":"Bot")}{startInning}, {startOuts} outs. New state was {(endTop?"Top":"Bot")}{endinning}, {endOuts} outs.");
 				//throw new InvalidOperationException("End time is before start time");
 				return 0;
 			}
