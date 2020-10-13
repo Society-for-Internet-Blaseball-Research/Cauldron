@@ -40,8 +40,8 @@ namespace Cauldron
 		public string homeTeamName { get; set; }
 		public string homeTeamNickname { get; set; }
 		public string homeTeam { get; set; }
-		public int awayScore { get; set; }
-		public int homeScore { get; set; }
+		public float awayScore { get; set; }
+		public float homeScore { get; set; }
 		public string lastUpdate { get; set; }
 		public bool gameComplete { get; set; }
 		public int inning { get; set; }

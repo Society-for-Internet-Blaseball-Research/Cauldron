@@ -390,6 +390,20 @@ namespace CauldronVisualizer
 			view.Show();
 		}
 
+
+		class ChroniclerGame
+		{
+			public string GameId { get; set; }
+			public DateTime Timestamp { get; set; }
+			public string Hash { get; set; }
+			public Game Data { get; set; }
+		}
+		class ChroniclerPage
+		{
+			public string NextPage { get; set; }
+			public IEnumerable<ChroniclerGame> Data { get; set; }
+		}
+
 		public void ChooseReblaseGame(object param)
 		{
 			string gameId = FilterText;
@@ -398,21 +412,17 @@ namespace CauldronVisualizer
 			{
 				try
 				{
-					string json = client.DownloadString($"https://reblase.sibr.dev/newapi/games/updates?game={gameId}&started=true&count=500");
+					string json = client.DownloadString($"https://api.sibr.dev/chronicler/v1/games/updates?game={gameId}&started=true&count=500");
 
 					var opts = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true };
 
-					var result = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, object>>>(json, opts);
+					var result = JsonSerializer.Deserialize<ChroniclerPage>(json, opts);
 
 					GameUpdates.Clear();
-					foreach (var dict in result)
+					foreach (var cg in result.Data)
 					{
-						var gameText = ((JsonElement)dict["data"]).GetRawText();
-						Game game = JsonSerializer.Deserialize<Game>(gameText, opts);
-
-						var timeText = ((JsonElement)dict["timestamp"]).GetRawText();
-						game.timestamp = JsonSerializer.Deserialize<DateTime>(timeText, opts);
-						AddGame(game);
+						cg.Data.timestamp = cg.Timestamp;
+						AddGame(cg.Data);
 					}
 				}
 				catch (Exception ex)

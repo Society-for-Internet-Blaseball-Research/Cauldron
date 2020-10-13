@@ -35,6 +35,7 @@ namespace Cauldron
 		public static string TRIPLE = "TRIPLE";
 		public static string QUADRUPLE = "QUADRUPLE";
 		public static string HOME_RUN = "HOME_RUN";
+		public static string HOME_RUN_5 = "HOME_RUN_5";
 		public static string SACRIFICE = "SACRIFICE";
 		public static string UNKNOWN_OUT = "UNKNOWN_OUT";
 		public static string GAME_OVER = "GAME_OVER";
@@ -88,7 +89,7 @@ namespace Cauldron
 		public int lineupPosition { get; set; }
 		public bool isLastEventForPlateAppearance { get; set; }
 		public int basesHit { get; set; }
-		public int runsBattedIn { get; set; }
+		public float runsBattedIn { get; set; }
 		public bool isSacrificeHit { get; set; }
 		public bool isSacrificeFly { get; set; }
 		public int outsOnPlay { get; set; }

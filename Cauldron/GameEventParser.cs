@@ -526,7 +526,7 @@ namespace Cauldron
 			{
 				m_currEvent.basesHit = newState.BatterTeamBases;
 				m_currEvent.batterBaseAfterPlay = newState.BatterTeamBases;
-				m_currEvent.eventType = GameEventType.HOME_RUN;
+				m_currEvent.eventType = m_currEvent.basesHit == 5 ? GameEventType.HOME_RUN_5 : GameEventType.HOME_RUN;
 				m_currEvent.battedBallType = BattedBallType.FLY;
 			}
 
@@ -674,9 +674,10 @@ namespace Cauldron
 				oldBases[m_oldState.basesOccupied[i]] = m_oldState.baseRunners[i];
 			}
 
-			int newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
-			int oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
-			int scoreDiff = newScore - oldScore;
+			// TODO fractional runs handling here
+			float newScore = m_oldState.topOfInning ? newState.awayScore : newState.homeScore;
+			float oldScore = m_oldState.topOfInning ? m_oldState.awayScore : m_oldState.homeScore;
+			float scoreDiff = newScore - oldScore;
 
 			// Handle runners present in the old state but possibly not in the new ('cuz they scored)
 			foreach (var kvp in oldBases.OrderByDescending(x => x.Key))
@@ -1092,8 +1093,8 @@ namespace Cauldron
 
 		private void UpdateScoreChanges(Game newState)
 		{
-			int oldScoreDiff = m_oldState.homeScore - m_oldState.awayScore;
-			int newScoreDiff = newState.homeScore - newState.awayScore;
+			float oldScoreDiff = m_oldState.homeScore - m_oldState.awayScore;
+			float newScoreDiff = newState.homeScore - newState.awayScore;
 
 			// Should leave us with 1 = home winning, 0 = tied, -1 = away winning
 			if (oldScoreDiff != 0)

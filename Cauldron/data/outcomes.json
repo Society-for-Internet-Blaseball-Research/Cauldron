@@ -5,7 +5,7 @@
 			{
 				"outcomeType": "DEBT_PAID",
 				"entityType": "player",
-				"captureName":  "target"
+				"captureName": "target"
 			},
 			{
 				"outcomeType": "UNSTABLE_CHAINED",
@@ -30,7 +30,7 @@
 		]
 	},
 	{
-		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s.*",
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s .+ ability!",
 		"entities": [
 			{
 				"outcomeType": "BLOOD_DRAIN_SIPHONER",
@@ -141,6 +141,146 @@
 				"outcomeType": "SHELLED_ATBAT",
 				"entityType": "player",
 				"captureName": "shelled"
+			}
+		]
+	},
+	{
+		"regex": "[.!] (?<spicy>.+) is Red Hot!",
+		"entities": [
+			{
+				"outcomeType": "RED_HOT",
+				"entityType": "player",
+				"captureName": "spicy"
+			}
+		]
+	},
+	{
+		"regex": "[.!] (?<spicy>.+) is no longer Red Hot.",
+		"entities": [
+			{
+				"outcomeType": "RED_HOT_ENDED",
+				"entityType": "player",
+				"captureName": "spicy"
+			}
+		]
+	},
+	{
+		"regex": "(?<charmer>.+) charms (.+)! (.+) walks",
+		"entities": [
+			{
+				"outcomeType": "CHARM_WALK",
+				"entityType": "player",
+				"captureName": "charmer"
+			}
+		]
+	},
+	{
+		"regex": "(?<charmer>.+) charms (.+)! (.+) swings",
+		"entities": [
+			{
+				"outcomeType": "CHARM_STRIKEOUT",
+				"entityType": "player",
+				"captureName": "charmer"
+			}
+		]
+	},
+	{
+		"regex": "Rogue Umpire tried to incinerate Magic hitter (?<fireEater>.+), but .+ ate the flame! They became Magmatic!",
+		"entities": [
+			{
+				"outcomeType": "MAGMATIC",
+				"entityType": "player",
+				"captureName": "fireEater"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to add an Out!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_ADD_OUT",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to remove an Out!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_REMOVE_OUT",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to add a Strike!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_ADD_STRIKE",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to remove a Strike!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_REMOVE_STRIKE",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to add a Ball!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_ADD_BALL",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
+			}
+		]
+	},
+	{
+		"regex": "The Blooddrain gurgled! (?<siphoner>.+) siphoned some of (?<siphonee>.+)'s defensive ability to remove a Ball!",
+		"entities": [
+			{
+				"outcomeType": "BLOOD_DRAIN_SIPHON_REMOVE_BALL",
+				"entityType": "player",
+				"captureName": "siphoner"
+			},
+			{
+				"outcomeType": "BLOOD_DRAIN_VICTIM",
+				"entityType": "player",
+				"captureName": "siphonee"
 			}
 		]
 	}
