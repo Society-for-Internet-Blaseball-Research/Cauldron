@@ -21,6 +21,12 @@ namespace Cauldron
 
 		private readonly JsonSerializerOptions m_serializerOptions;
 
+		public int NumNetworkOutcomes => m_numNetworkOutcomes;
+		int m_numNetworkOutcomes = 0;
+
+		public int NumLocalOutcomes => m_numLocalOutcomes;
+		int m_numLocalOutcomes = 0;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -82,7 +88,12 @@ namespace Cauldron
 				GameEventParser parser = new GameEventParser();
 				parser.EventComplete += GameEventCompleteInternal;
 				parser.GameComplete += GameCompleteInternal;
-				parser.StartNewGame(game, timestamp, hash);
+				bool networkOutcomes = parser.StartNewGame(game, timestamp, hash);
+
+				if (networkOutcomes)
+					m_numNetworkOutcomes++;
+				else
+					m_numLocalOutcomes++;
 
 				m_trackedGames[game.gameId] = parser;
 			}

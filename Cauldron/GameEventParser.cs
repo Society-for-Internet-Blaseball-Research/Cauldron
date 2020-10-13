@@ -115,7 +115,7 @@ namespace Cauldron
 			WriteIndented = true
 		};
 
-		public void StartNewGame(Game initState, DateTime timeStamp, string hash = null)
+		public bool StartNewGame(Game initState, DateTime timeStamp, string hash = null)
 		{
 			m_seenUpdates = new HashSet<string>();
 			if(hash != null)
@@ -129,6 +129,7 @@ namespace Cauldron
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
 			string outcomeString = "";
+			bool networkOutcome = false;
 
 			// Use a local outcomes.json if it exists
 			if (outcomeString == "" && File.Exists("data/outcomes.json"))
@@ -148,6 +149,7 @@ namespace Cauldron
 					try
 					{
 						outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
+						networkOutcome = true;
 						//Console.Write("Using network outcomes.json: ");
 					}
 					catch (Exception)
@@ -192,6 +194,8 @@ namespace Cauldron
 			m_sentGameComplete = false;
 
 			CheckInningState(initState);
+
+			return networkOutcome;
 		}
 
 		bool CheckForDuplicateUpdate(string hash)
