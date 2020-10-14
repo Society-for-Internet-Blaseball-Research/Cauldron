@@ -135,7 +135,8 @@ namespace Cauldron
 		public List<string> parsingErrorList { get; set; }
 		public bool fixedError { get; set; }
 		public List<string> fixedErrorList { get; set; }
-
+		
+		[DbIgnore]
 		public List<string> updateHashes { get; set; }
 	}
 }
