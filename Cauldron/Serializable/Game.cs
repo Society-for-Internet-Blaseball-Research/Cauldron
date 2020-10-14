@@ -82,6 +82,8 @@ namespace Cauldron
 		public int? homeBalls { get; set; }
 		public int? awayBalls { get; set; }
 
+		public string chroniclerHash { get; set; }
+
 		[JsonConverter(typeof(TimestampConverter))]
 		public DateTime timestamp { get; set; }
 

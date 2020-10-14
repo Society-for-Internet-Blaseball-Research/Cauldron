@@ -422,6 +422,7 @@ namespace CauldronVisualizer
 					foreach (var cg in result.Data)
 					{
 						cg.Data.timestamp = cg.Timestamp;
+						cg.Data.chroniclerHash = cg.Hash;
 						AddGame(cg.Data);
 					}
 				}

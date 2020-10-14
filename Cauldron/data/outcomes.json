@@ -283,5 +283,21 @@
 				"captureName": "siphonee"
 			}
 		]
+	},
+	{
+		"regex": "(?<friend>.+) calls upon their Friends! A murder of Crows ambush (?<victim>.+)!.*",
+		"entities": [
+			{
+				"outcomeType": "MURDER_FRIEND",
+				"entityType": "player",
+				"captureName": "friend"
+			},
+			{
+				"outcomeType": "MURDER_VICTIM",
+				"entityType": "player",
+				"captureName": "victim"
+			}
+		]
 	}
+
 ]

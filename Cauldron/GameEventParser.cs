@@ -115,11 +115,11 @@ namespace Cauldron
 			WriteIndented = true
 		};
 
-		public bool StartNewGame(Game initState, DateTime timeStamp, string hash = null)
+		public bool StartNewGame(Game initState, DateTime timeStamp)
 		{
 			m_seenUpdates = new HashSet<string>();
-			if(hash != null)
-				m_seenUpdates.Add(hash);
+			if(initState.chroniclerHash != null)
+				m_seenUpdates.Add(initState.chroniclerHash);
 
 			m_inningState = InningState.Init;
 
@@ -285,6 +285,8 @@ namespace Cauldron
 			currEvent.parsingErrorList = new List<string>();
 			currEvent.fixedError = false;
 			currEvent.fixedErrorList = new List<string>();
+			currEvent.updateHashes = new List<string>();
+			currEvent.updateHashes.Add(newState.chroniclerHash);
 
 			currEvent.firstPerceivedAt = timeStamp;
 
@@ -305,10 +307,10 @@ namespace Cauldron
 
 			// Currently not supported by the cultural event of Blaseball
 			currEvent.isPinchHit = false;
-			currEvent.isWildPitch = false;
 			currEvent.isBunt = false;
 			currEvent.errorsOnPlay = 0;
 
+			currEvent.isWildPitch = false;
 			currEvent.batterId = newState.BatterId;
 			currEvent.batterTeamId = newState.BatterTeamId;
 			currEvent.pitcherId = newState.PitcherId;
@@ -354,7 +356,15 @@ namespace Cauldron
 				else if (newState.lastUpdate.Contains("walk"))
 				{
 					m_currEvent.totalBalls = 4;
-					m_currEvent.eventType = GameEventType.WALK;
+
+					if(newState.lastUpdate.Contains("charms"))
+					{
+						m_currEvent.eventType = GameEventType.CHARM_WALK;
+					}
+					else
+					{
+						m_currEvent.eventType = GameEventType.WALK;
+					}
 					m_currEvent.isWalk = true;
 					newBalls = m_currEvent.totalBalls - m_oldState.atBatBalls;
 				}
@@ -362,19 +372,18 @@ namespace Cauldron
 				{
 					m_currEvent.eventType = GameEventType.HIT_BY_PITCH;
 				}
+				else if (newState.lastUpdate.Contains("Mild pitch!"))
+				{
+					m_currEvent.isWildPitch = true;
+
+					if(newState.lastUpdate.Contains("Runners advance on the pathetic play!"))
+					{
+						m_currEvent.eventType = GameEventType.WILD_PITCH;
+					}
+				}
 
 			}
-			//else if(IsStartOfNextAtBat(m_oldState, newState, 2))
-			//{
-			//	newStrikes = newState.atBatStrikes;
-			//	newBalls = newState.atBatBalls;
-			//}
-			//// This else case should return so we can assume we are only covering one event below
-			//else
-			//{
-			//	//AddParsingError(m_currEvent, $"Event jumped to processing a different batter unexpectedly");
-			//	return;
-			//}
+			
 
 			// Oops, we hit a gap, lets see if we can fill it in
 			if(newStrikes + newBalls > 1)
@@ -470,6 +479,11 @@ namespace Cauldron
 				if (newState.lastUpdate.Contains("strikes out") || newState.lastUpdate.Contains("struck out"))
 				{
 					m_currEvent.eventType = GameEventType.STRIKEOUT;
+				}
+				else if(newState.lastUpdate.Contains("strike out willingly!"))
+				{
+					m_currEvent.eventType = GameEventType.CHARM_STRIKEOUT;
+					m_currEvent.totalStrikes = newState.topOfInning ? newState.awayStrikes.GetValueOrDefault() : newState.homeStrikes.GetValueOrDefault();
 				}
 				else if(newState.lastUpdate.Contains("sacrifice"))
 				{
@@ -1298,9 +1312,9 @@ namespace Cauldron
 		/// <param name="newState"></param>
 		/// <param name="timeStamp"></param>
 		/// <returns></returns>
-		public async Task ParseGameUpdate(Game newState, DateTime timeStamp, string hash = null)
+		public async Task ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
-			bool dupe = CheckForDuplicateUpdate(hash);
+			bool dupe = CheckForDuplicateUpdate(newState.chroniclerHash);
 
 			if (IsGameComplete)
 			{
@@ -1411,6 +1425,7 @@ namespace Cauldron
 				m_currEvent = CreateNewGameEvent(newState, timeStamp);
 			}
 
+			m_currEvent.updateHashes.Add(newState.chroniclerHash);
 			m_currEvent.lastPerceivedAt = timeStamp;
 
 			// If we haven't found the batter for this event yet, try again
@@ -1481,12 +1496,14 @@ namespace Cauldron
 
 			// If we had outs or hits or a walk or a steal, emit
 			// OR IF THE GAME IS OVER, duh
+			// or hit by a pitch or a wild pitch
 			if(m_currEvent.outsOnPlay > 0 
 				|| m_currEvent.basesHit > 0 
 				|| m_currEvent.isSteal 
 				|| m_currEvent.isWalk 
 				|| m_currEvent.isLastGameEvent
 				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH
+				|| m_currEvent.eventType == GameEventType.WILD_PITCH
 				|| m_inningState == InningState.PlayEnded)
 			{
 				EmitEvent(newState, timeStamp);

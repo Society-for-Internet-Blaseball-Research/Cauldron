@@ -68,8 +68,8 @@ namespace Cauldron
 		/// </summary>
 		/// <param name="game">update object</param>
 		/// <param name="timestamp">time this object was perceived</param>
-		/// <param name="complete">event handler to register for game completion events</param>
-		public async Task ProcessGameObject(Game game, DateTime? inTimestamp, string hash = null)
+		/// <param name="hash">unique hash for this update</param>
+		public async Task ProcessGameObject(Game game, DateTime? inTimestamp)
 		{
 			DateTime timestamp;
 			// If timestamp is missing or stupid, look it up in our list of known bummers
@@ -88,7 +88,7 @@ namespace Cauldron
 				GameEventParser parser = new GameEventParser();
 				parser.EventComplete += GameEventCompleteInternal;
 				parser.GameComplete += GameCompleteInternal;
-				bool networkOutcomes = parser.StartNewGame(game, timestamp, hash);
+				bool networkOutcomes = parser.StartNewGame(game, timestamp);
 
 				if (networkOutcomes)
 					m_numNetworkOutcomes++;
@@ -101,7 +101,7 @@ namespace Cauldron
 			{
 				// Update a current game
 				GameEventParser parser = m_trackedGames[game.gameId];
-				await parser.ParseGameUpdate(game, timestamp, hash);
+				await parser.ParseGameUpdate(game, timestamp);
 			}
 		}
 

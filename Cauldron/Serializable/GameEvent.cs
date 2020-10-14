@@ -40,6 +40,8 @@ namespace Cauldron
 		public static string UNKNOWN_OUT = "UNKNOWN_OUT";
 		public static string GAME_OVER = "GAME_OVER";
 		public static string SHELLED_ATBAT = "SHELLED_ATBAT";
+		public static string CHARM_WALK = "CHARM_WALK";
+		public static string CHARM_STRIKEOUT = "CHARM_STRIKEOUT";
 	}
 
 
@@ -134,5 +136,7 @@ namespace Cauldron
 		public List<string> parsingErrorList { get; set; }
 		public bool fixedError { get; set; }
 		public List<string> fixedErrorList { get; set; }
+
+		public List<string> updateHashes { get; set; }
 	}
 }
