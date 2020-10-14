@@ -1073,7 +1073,7 @@ namespace Cauldron
 		private void ErrorCheckBeforeEmit(GameEvent toEmit)
 		{
 			// Game Over events can't really have errors
-			if(toEmit.isLastGameEvent == true || toEmit.eventType == GameEventType.GAME_OVER)
+			if(toEmit.isLastGameEvent == true)
 			{
 				return;
 			}
@@ -1481,12 +1481,6 @@ namespace Cauldron
 			// Unsure if this is enough
 			m_currEvent.isLastGameEvent = newState.gameComplete;
 			IsGameComplete = newState.gameComplete;
-			if(IsGameComplete)
-			{
-				m_currEvent.eventType = GameEventType.GAME_OVER;
-				// Just complete however many outs
-				//m_currEvent.outsOnPlay = 3 - m_currEvent.outsBeforePlay;
-			}
 
 			// Store original update text for reference
 			m_currEvent.eventText.Add(newState.lastUpdate);
@@ -1501,7 +1495,6 @@ namespace Cauldron
 				|| m_currEvent.basesHit > 0 
 				|| m_currEvent.isSteal 
 				|| m_currEvent.isWalk 
-				|| m_currEvent.isLastGameEvent
 				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH
 				|| m_currEvent.eventType == GameEventType.WILD_PITCH
 				|| m_inningState == InningState.PlayEnded)
