@@ -286,7 +286,6 @@ namespace Cauldron
 			currEvent.fixedError = false;
 			currEvent.fixedErrorList = new List<string>();
 			currEvent.updateHashes = new List<string>();
-			currEvent.updateHashes.Add(newState.chroniclerHash);
 
 			currEvent.firstPerceivedAt = timeStamp;
 
