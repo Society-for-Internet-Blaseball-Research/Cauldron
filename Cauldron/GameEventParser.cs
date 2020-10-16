@@ -463,7 +463,8 @@ namespace Cauldron
 		{
 			// If the inning suddenly changed, that means this play got all the rest of the outs
 			// TODO: triple plays if implemented
-			if (newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts > 0)
+			if ((newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts > 0) ||
+				endOfGameHappened(m_oldState, newState))
 			{
 				m_currEvent.outsOnPlay = 3 - m_oldState.halfInningOuts;
 			}
@@ -1172,7 +1173,7 @@ namespace Cauldron
 				m_inningState = InningState.GameStart;
 				return true;
 			}
-			// GameStart goes to HalfInningStart on a "Top of" or "Bottom of"
+			// GameStart and PlayEnded go to HalfInningStart on a "Top of" or "Bottom of"
 			else if((m_inningState == InningState.GameStart || m_inningState == InningState.PlayEnded) && 
 				IsStartOfInningMessage(newState))
 			{
@@ -1248,10 +1249,14 @@ namespace Cauldron
 			return false;
 		}
 
+		public bool endOfGameHappened(Game oldState, Game newState)
+		{
+			return (oldState.inning >= 8 && oldState.inning == newState.inning && oldState.topOfInning == newState.topOfInning && oldState.halfInningOuts == 2 && newState.halfInningOuts == 0);
+		}
+
 		public int outsBetween(Game oldState, Game newState)
 		{
-			if (newState.gameComplete || 
-				(oldState.inning >= 8 && oldState.inning == newState.inning && oldState.topOfInning == newState.topOfInning && oldState.halfInningOuts == 2 && newState.halfInningOuts == 0))
+			if (newState.gameComplete || endOfGameHappened(oldState, newState))
 			{
 				// On game complete it resets to 0 outs, ugh
 				// So pretend we were passed the next half-inning
