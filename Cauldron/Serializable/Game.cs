@@ -81,6 +81,8 @@ namespace Cauldron
 		public int? awayBases { get; set; }
 		public int? homeBalls { get; set; }
 		public int? awayBalls { get; set; }
+		public int? homeOuts { get; set; }
+		public int? awayOuts { get; set; }
 
 		public string chroniclerHash { get; set; }
 
@@ -117,6 +119,12 @@ namespace Cauldron
 				(awayTeam == other.awayTeam) &&
 				(awayTeamNickname == other.awayTeamNickname) &&
 				(awayTeamName == other.awayTeamName) &&
+				(homeBalls == other.homeBalls) &&
+				(awayBalls == other.awayBalls) &&
+				(homeBases == other.homeBases) &&
+				(awayBases == other.awayBases) &&
+				(homeOuts == other.homeOuts) &&
+				(awayOuts == other.awayOuts) &&
 				(_id == other._id));
 		}
 
@@ -181,6 +189,15 @@ namespace Cauldron
 			get
 			{
 				return (topOfInning ? awayBalls : homeBalls) ?? 4;
+			}
+		}
+
+		[JsonIgnore]
+		public int BatterTeamOuts
+		{
+			get
+			{
+				return (topOfInning ? awayOuts : homeOuts) ?? 3;
 			}
 		}
 	}

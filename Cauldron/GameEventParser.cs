@@ -354,7 +354,7 @@ namespace Cauldron
 				}
 				else if (newState.lastUpdate.Contains("walk"))
 				{
-					m_currEvent.totalBalls = 4;
+					m_currEvent.totalBalls = newState.BatterTeamBalls;
 
 					if(newState.lastUpdate.Contains("charms"))
 					{
@@ -731,7 +731,7 @@ namespace Cauldron
 
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = newState.BatterTeamBases;
-					runner.runnerScored = true;
+					runner.runsScored = 1;
 					if (newState.lastUpdate.Contains("steals"))
 					{
 						runner.wasBaseStolen = true;
@@ -800,56 +800,12 @@ namespace Cauldron
 				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
-				runner.runnerScored = true;
+				runner.runsScored = 1;
 				runner.baseAfterPlay = newState.BatterTeamBases;
 				m_currEvent.baseRunners.Add(runner);
 			}
 
-			//// Check for fixable errors with missed hits
-			//if(m_currEvent.eventType == GameEventType.UNKNOWN)
-			//{
-			//	// Look to see if the batter got on base
-			//	foreach(var runner in m_currEvent.baseRunners)
-			//	{
-			//		if(runner.runnerId == m_currEvent.batterId)
-			//		{
-			//			switch(runner.baseAfterPlay)
-			//			{
-			//				case 1:
-			//					m_currEvent.eventType = GameEventType.SINGLE;
-			//					m_currEvent.basesHit = 1;
-			//					break;
-			//				case 2:
-			//					m_currEvent.eventType = GameEventType.DOUBLE;
-			//					m_currEvent.basesHit = 2;
-			//					break;
-			//				case 3:
-			//					m_currEvent.eventType = GameEventType.TRIPLE;
-			//					m_currEvent.basesHit = 3;
-			//					break;
-			//				case 4:
-			//					m_currEvent.basesHit = 4;
-			//					if (newState.BatterTeamBases == 4)
-			//					{
-			//						m_currEvent.eventType = GameEventType.HOME_RUN;
-			//					}
-			//					else
-			//					{
-			//						m_currEvent.eventType = GameEventType.QUADRUPLE;
-			//					}
-			//					break;
-			//				case 5:
-			//					m_currEvent.basesHit = 5;
-			//					m_currEvent.eventType = GameEventType.HOME_RUN;
-			//					break;
-			//			}
 
-			//			// Some kind of hit!
-			//			m_currEvent.pitchesList.Add('X');
-			//			AddFixedError(m_currEvent, $"Found the batter apparently hit a {m_currEvent.eventType} without us seeing it, but fixed it.");
-			//		}
-			//	}
-			//}
 
 			// Last thing - if we just changed innings, clear the responsible pitcher list
 			// Note that we do this AFTER attributing baserunners who may have just done something on this play
@@ -1126,13 +1082,13 @@ namespace Cauldron
 				if(newScoreDiff > 0)
 				{
 					// Home is now winning
-					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runnerScored).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
+					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runsScored > 0).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
 					m_awayOwningPitcher = leadingRunner?.responsiblePitcherId ?? m_awayOwningPitcher;
 				}
 				else if(newScoreDiff < 0)
 				{
 					// Away is now winning
-					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runnerScored).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
+					var leadingRunner = m_currEvent.baseRunners.Where(x => x.runsScored > 0).OrderByDescending(x => x.baseBeforePlay).FirstOrDefault();
 					m_homeOwningPitcher = leadingRunner?.responsiblePitcherId ?? m_homeOwningPitcher;
 				}
 			}
