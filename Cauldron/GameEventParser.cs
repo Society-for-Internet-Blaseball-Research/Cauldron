@@ -597,6 +597,7 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("caught stealing"))
 			{
 				m_currEvent.eventType = GameEventType.CAUGHT_STEALING;
+				m_currEvent.isLastEventForPlateAppearance = false;
 			}
 		}
 

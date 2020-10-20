@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Cauldron
@@ -13,6 +14,15 @@ namespace Cauldron
     public class Team : IComparable<Team>
     {
         public string _id { get; set; }
+		public string id { get; set; }
+		[JsonIgnore]
+		public string Id
+		{
+			get
+			{
+				return _id ?? id;
+			}
+		}
         public string fullName { get; set; }
         public string nickname { get; set; }
         public string mainColor { get; set; }

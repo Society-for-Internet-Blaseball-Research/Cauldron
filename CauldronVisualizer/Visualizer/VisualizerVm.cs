@@ -310,7 +310,7 @@ namespace CauldronVisualizer
 
 			foreach(var team in allTeams)
 			{
-				m_teamLookup[team._id] = team;
+				m_teamLookup[team.Id] = team;
 			}
 		}
 
