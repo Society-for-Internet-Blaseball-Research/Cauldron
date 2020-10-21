@@ -503,10 +503,7 @@ namespace Cauldron
 		private void UpdateHits(Game newState)
 		{
 			// Handle RBIs
-			if (!m_oldState.lastUpdate.Contains("steals"))
-			{
-				m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
-			}
+			m_currEvent.runsBattedIn = newState.topOfInning ? newState.awayScore - m_oldState.awayScore : newState.homeScore - m_oldState.homeScore;
 
 			// Mark any kind of hit
 			if (newState.lastUpdate.Contains("hits a") || newState.lastUpdate.Contains("hit a"))
@@ -829,13 +826,44 @@ namespace Cauldron
 				StartInning(newState);
 				m_currEvent.isLeadoff = true;
 			}
+		}
 
-			if(newState.lastUpdate.Contains("is Shelled and cannot escape!"))
+		private bool UpdateSpecialNonsense(Game newState)
+		{
+			if (newState.lastUpdate.Contains("is Shelled and cannot escape!"))
 			{
 				m_currEvent.eventType = GameEventType.SHELLED_ATBAT;
 				// TODO: deduce the player ID
+				return true;
 			}
+
+			if(newState.lastUpdate.Contains("The Black Hole swallows the Runs"))
+			{
+				m_currEvent.eventType = GameEventType.BLACK_HOLE;
+
+				Outcome outcome = new Outcome(newState.lastUpdate);
+				outcome.eventType = OutcomeType.BLACK_HOLE;
+				outcome.entityId = newState.BatterTeamId;
+
+				m_currEvent.outcomes.Add(outcome);
+				return true;
+			}
+
+			if(newState.lastUpdate.Contains("Sun 2 smiles."))
+			{
+				m_currEvent.eventType = GameEventType.SUN_2;
+
+				Outcome outcome = new Outcome(newState.lastUpdate);
+				outcome.eventType = OutcomeType.SUN_2;
+				outcome.entityId = newState.BatterTeamId;
+
+				m_currEvent.outcomes.Add(outcome);
+				return true;
+			}
+
+			return false;
 		}
+
 
 		class OutcomeMatcher
 		{
@@ -1030,7 +1058,11 @@ namespace Cauldron
 		private void ErrorCheckBeforeEmit(GameEvent toEmit)
 		{
 			// Game Over events can't really have errors
-			if(toEmit.isLastGameEvent == true || toEmit.eventType == GameEventType.GAME_OVER)
+			// Neither can crazy weather effects
+			if(toEmit.isLastGameEvent == true || 
+				toEmit.eventType == GameEventType.GAME_OVER ||
+				toEmit.eventType == GameEventType.BLACK_HOLE ||
+				toEmit.eventType == GameEventType.SUN_2)
 			{
 				return;
 			}
@@ -1416,25 +1448,30 @@ namespace Cauldron
 
 			UpdateLineupInfo(newState);
 
-			UpdateBallsAndStrikes(newState);
+			bool specialNonsense = UpdateSpecialNonsense(newState);
 
-			UpdateOuts(newState);
+			if (!specialNonsense)
+			{
+				UpdateBallsAndStrikes(newState);
 
-			UpdateHits(newState);
+				UpdateOuts(newState);
 
-			// Call after UpdateOuts
-			UpdateFielding(newState);
+				UpdateHits(newState);
 
-			// Call after UpdateOuts
-			UpdateBaserunning(newState);
+				// Call after UpdateOuts
+				UpdateFielding(newState);
 
-			// Call after UpdateBaseRunning
-			UpdateScoreChanges(newState);
+				// Call after UpdateOuts
+				UpdateBaserunning(newState);
 
-			await UpdateOutcomes(newState);
+				// Call after UpdateBaseRunning
+				UpdateScoreChanges(newState);
+
+				await UpdateOutcomes(newState);
+			}
 
 			// Unknown or not currently handled event
-			if(m_currEvent.eventType == null)
+			if (m_currEvent.eventType == null)
 			{
 				m_currEvent.eventType = GameEventType.UNKNOWN;
 			}

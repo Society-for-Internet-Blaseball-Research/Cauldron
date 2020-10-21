@@ -26,6 +26,8 @@ namespace Cauldron
 		public static string UNSTABLE_CHAINED = "UNSTABLE_CHAINED";
 		public static string SHELL_CRACKED = "SHELL_CRACKED";
 		public static string PARTYING = "PARTYING";
+		public static string BLACK_HOLE = "BLACK_HOLE";
+		public static string SUN_2 = "SUN_2";
 	}
 
 

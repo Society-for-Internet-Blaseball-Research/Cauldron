@@ -42,6 +42,8 @@ namespace Cauldron
 		public static string SHELLED_ATBAT = "SHELLED_ATBAT";
 		public static string CHARM_WALK = "CHARM_WALK";
 		public static string CHARM_STRIKEOUT = "CHARM_STRIKEOUT";
+		public static string BLACK_HOLE = "BLACK_HOLE";
+		public static string SUN_2 = "SUN_2";
 	}
 
 
