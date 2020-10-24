@@ -482,6 +482,10 @@ namespace Cauldron
 				}
 				else if(newState.lastUpdate.Contains("strike out willingly!"))
 				{
+					for (int i = 0; i < newState.BatterTeamStrikes; i++)
+					{
+						m_currEvent.pitchesList.Add('S');
+					}
 					m_currEvent.eventType = GameEventType.CHARM_STRIKEOUT;
 					m_currEvent.totalStrikes = newState.topOfInning ? newState.awayStrikes.GetValueOrDefault() : newState.homeStrikes.GetValueOrDefault();
 				}
@@ -667,6 +671,10 @@ namespace Cauldron
 							if(newState.lastUpdate.Contains("steals"))
 							{
 								runner.wasBaseStolen = true;
+								if (newState.lastUpdate.Contains("Blaserunning!"))
+								{
+									runner.runsScored += 0.2f;
+								}
 							}
 							if(newState.lastUpdate.Contains("caught"))
 							{
@@ -729,7 +737,7 @@ namespace Cauldron
 
 					runner.baseBeforePlay = baseIndex + 1;
 					runner.baseAfterPlay = newState.BatterTeamBases;
-					runner.runsScored = 1;
+					runner.runsScored += 1;
 					if (newState.lastUpdate.Contains("steals"))
 					{
 						runner.wasBaseStolen = true;
@@ -798,7 +806,7 @@ namespace Cauldron
 				runner.runnerId = newState.BatterId ?? m_oldState.BatterId;
 				runner.responsiblePitcherId = newState.PitcherId;
 				runner.baseBeforePlay = 0;
-				runner.runsScored = 1;
+				runner.runsScored += 1;
 				runner.baseAfterPlay = newState.BatterTeamBases;
 				m_currEvent.baseRunners.Add(runner);
 			}
@@ -1328,7 +1336,7 @@ namespace Cauldron
 
 		/// <summary>
 		/// Call this with every game update for the game this parser is handling
-		/// </summary>
+		/// </summary>f
 		/// <param name="newState"></param>
 		/// <param name="timeStamp"></param>
 		/// <returns></returns>

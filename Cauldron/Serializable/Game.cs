@@ -177,6 +177,15 @@ namespace Cauldron
 		}
 
 		[JsonIgnore]
+		public int BatterTeamStrikes
+		{
+			get
+			{
+				return (topOfInning ? awayStrikes : homeStrikes) ?? 3;
+			}
+		}
+
+		[JsonIgnore]
 		public int BatterTeamBases
 		{
 			get
