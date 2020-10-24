@@ -422,7 +422,7 @@ namespace Cauldron
 			}
 			else if (newStrikes == 1)
 			{
-				if (newState.lastUpdate.Contains("looking"))
+				if (newState.lastUpdate.Contains("looking") || newState.lastUpdate.Contains("flinched. Strike."))
 				{
 					m_currEvent.pitchesList.Add('C');
 				}
@@ -1150,6 +1150,33 @@ namespace Cauldron
 			EventComplete?.Invoke(this, new GameEventCompleteEventArgs(emitted));
 		}
 
+		// Checks whether the playCount increased correctly
+		// Returns TRUE on a valid playCount and FALSE on an invalid one (meaning a data gap or misorder)
+		public bool CheckPlayCount(Game newState)
+		{
+			if(m_oldState.playCount.HasValue && newState.playCount.HasValue)
+			{
+				int diff = newState.playCount.Value - m_oldState.playCount.Value;
+
+				if(diff == 1)
+				{
+					return true;
+				}
+				else
+				{
+					if (m_currEvent != null)
+					{
+						m_currEvent.parsingError = true;
+						m_currEvent.parsingErrorList.Add($"playCount went from {m_oldState.playCount.Value} to {newState.playCount.Value}");
+					}
+					return false;
+				}
+			}
+			else
+			{
+				return true;
+			}
+		}
 
 		// Checks the new message and advances the inning state machine
 		// Returns TRUE on a valid transition and FALSE on an invalid one (meaning a data gap)
@@ -1332,10 +1359,11 @@ namespace Cauldron
 			}
 
 			bool validInningState = CheckInningState(newState);
+			bool validPlayCount = CheckPlayCount(newState);
 
 			// DATA GAP DETECTION
 			// If we had an invalid transition on our inning state machine, something weird happened
-			if(!validInningState)
+			if(!validInningState || !validPlayCount)
 			{
 				int missedOuts = outsBetween(m_oldState, newState);
 

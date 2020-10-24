@@ -84,6 +84,7 @@ namespace Cauldron
 		public int? homeOuts { get; set; }
 		public int? awayOuts { get; set; }
 
+		public int? playCount { get; set; }
 		public string chroniclerHash { get; set; }
 
 		[JsonConverter(typeof(TimestampConverter))]
@@ -125,6 +126,7 @@ namespace Cauldron
 				(awayBases == other.awayBases) &&
 				(homeOuts == other.homeOuts) &&
 				(awayOuts == other.awayOuts) &&
+				(playCount == other.playCount) &&
 				(_id == other._id));
 		}
 
