@@ -1334,6 +1334,10 @@ namespace Cauldron
 		/// <returns></returns>
 		public async Task ParseGameUpdate(Game newState, DateTime timeStamp)
 		{
+			// Remove any leading/trailing whitespace and newlines inside the update string
+			newState.lastUpdate = newState.lastUpdate.Trim();
+			newState.lastUpdate = newState.lastUpdate.Replace("\n", " ");
+
 			bool dupe = CheckForDuplicateUpdate(newState.chroniclerHash);
 
 			if (IsGameComplete)
