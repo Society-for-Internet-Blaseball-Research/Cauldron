@@ -190,7 +190,7 @@ namespace Cauldron
 		{
 			get
 			{
-				return (topOfInning ? awayBases : homeBases) ?? 4;
+				return (topOfInning ? awayBases : homeBases) ?? 3;
 			}
 		}
 
