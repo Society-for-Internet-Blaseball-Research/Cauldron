@@ -291,6 +291,7 @@ namespace Cauldron
 
 			currEvent.gameId = newState.gameId;
 			currEvent.season = newState.season;
+			currEvent.tournament = newState.tournament.HasValue ? newState.tournament.Value : -1;
 			currEvent.day = newState.day;
 			currEvent.eventIndex = m_eventIndex;
 			currEvent.batterCount = m_batterCount;

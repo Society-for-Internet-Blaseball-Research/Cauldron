@@ -126,8 +126,8 @@ namespace Cauldron
 		public DateTime lastPerceivedAt { get; set; }
 
 		public int season { get; set; }
-
 		public int day { get; set; }
+		public int tournament { get; set; }
 		public override string ToString()
 		{
 			return $"[{eventIndex}] OB: {outsBeforePlay}\tO: {outsOnPlay}\tCount {totalBalls}-{totalStrikes}\tFouls: {totalFouls}\tBases: {basesHit}\tRBIs: {runsBattedIn}\t\"{additionalContext}\": {pitcherId} pitching to {batterId}";

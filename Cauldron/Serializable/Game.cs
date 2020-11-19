@@ -90,6 +90,8 @@ namespace Cauldron
 		[JsonConverter(typeof(TimestampConverter))]
 		public DateTime timestamp { get; set; }
 
+		public int? tournament { get; set; }
+
 		public bool Equals([AllowNull] Game other)
 		{
 			// don't compare the lists
@@ -127,6 +129,7 @@ namespace Cauldron
 				(homeOuts == other.homeOuts) &&
 				(awayOuts == other.awayOuts) &&
 				(playCount == other.playCount) &&
+				(tournament == other.tournament) &&
 				(_id == other._id));
 		}
 
