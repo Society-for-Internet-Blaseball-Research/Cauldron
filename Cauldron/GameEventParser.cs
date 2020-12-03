@@ -140,7 +140,7 @@ namespace Cauldron
 					localOutcomeVersion = int.Parse(outcomesFile.ReadLine());
 					localOutcomeString = outcomesFile.ReadToEnd();
 				}
-				Console.WriteLine($"Local simple-outcomes.cfg is version {localOutcomeVersion}");
+				//Console.WriteLine($"Local simple-outcomes.cfg is version {localOutcomeVersion}");
 			}
 
 			string networkOutcomeString = "";
@@ -151,9 +151,9 @@ namespace Cauldron
 				try
 				{
 					string file = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/simple-outcomes.cfg");
-					networkOutcomeVersion = int.Parse(file.Substring(0, file.IndexOf("\r\n")));
-					networkOutcomeString = file.Substring(file.IndexOf("\r\n")+1);
-					Console.WriteLine($"Network simple-outcomes.cfg is version {networkOutcomeVersion}");
+					networkOutcomeVersion = int.Parse(file.Substring(0, file.IndexOf("\n")));
+					networkOutcomeString = file.Substring(file.IndexOf("\n")+1);
+					//Console.WriteLine($"Network simple-outcomes.cfg is version {networkOutcomeVersion}");
 				}
 				catch (Exception)
 				{
