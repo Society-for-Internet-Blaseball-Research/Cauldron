@@ -138,7 +138,7 @@ namespace Cauldron
 				using (var outcomesFile = new StreamReader("data/simple-outcomes.cfg"))
 				{
 					localOutcomeVersion = int.Parse(outcomesFile.ReadLine());
-					localOutcomeString = outcomesFile.ReadToEnd();
+					localOutcomeString = string.Concat(outcomesFile.ReadToEnd().Where(x => x != '\r'));
 				}
 				//Console.WriteLine($"Local simple-outcomes.cfg is version {localOutcomeVersion}");
 			}
@@ -174,7 +174,7 @@ namespace Cauldron
 			m_simpleOutcomes = new List<(string, string)>();
 			if (outcomeString != "")
 			{
-				var lines = outcomeString.Split("\r\n");
+				var lines = outcomeString.Split("\n");
 				foreach(var line in lines)
 				{
 					if (line.Trim() != string.Empty)
