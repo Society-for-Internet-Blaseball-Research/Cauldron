@@ -129,45 +129,60 @@ namespace Cauldron
 			m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
 			string outcomeString = "";
-			bool networkOutcome = false;
 
+			string localOutcomeString = "";
+			int localOutcomeVersion = 0;
 			// Use a local outcomes.json if it exists
-			if (outcomeString == "" && File.Exists("data/outcomes.json"))
+			if (File.Exists("data/simple-outcomes.cfg"))
 			{
-				using (var outcomesFile = new StreamReader("data/outcomes.json"))
+				using (var outcomesFile = new StreamReader("data/simple-outcomes.cfg"))
 				{
-					outcomeString = outcomesFile.ReadToEnd();
+					localOutcomeVersion = int.Parse(outcomesFile.ReadLine());
+					localOutcomeString = outcomesFile.ReadToEnd();
 				}
-				//Console.Out.Write("Using local outcomes.json: ");
+				Console.WriteLine($"Local simple-outcomes.cfg is version {localOutcomeVersion}");
 			}
 
-			if (outcomeString == "")
+			string networkOutcomeString = "";
+			int networkOutcomeVersion = 0;
+			// Wild but neat: try to download the latest outcomes.json content directly from the mainline repository, and use that!
+			using (var client = new WebClient())
 			{
-				// Wild but neat: try to download the latest outcomes.json content directly from the mainline repository, and use that!
-				using (var client = new WebClient())
+				try
 				{
-					try
-					{
-						outcomeString = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/outcomes.json");
-						networkOutcome = true;
-						//Console.Write("Using network outcomes.json: ");
-					}
-					catch (Exception)
-					{
-					}
+					string file = client.DownloadString("https://raw.githubusercontent.com/Society-for-Internet-Blaseball-Research/Cauldron/master/Cauldron/data/simple-outcomes.cfg");
+					networkOutcomeVersion = int.Parse(file.Substring(0, file.IndexOf("\r\n")));
+					networkOutcomeString = file.Substring(file.IndexOf("\r\n")+1);
+					Console.WriteLine($"Network simple-outcomes.cfg is version {networkOutcomeVersion}");
+				}
+				catch (Exception)
+				{
 				}
 			}
-			
 
-			if (outcomeString != "")
+			bool networkOutcome = false;
+			if (networkOutcomeVersion > localOutcomeVersion)
 			{
-				var outcomes = JsonSerializer.Deserialize<List<OutcomeDefinition>>(outcomeString, s_outcomeJsonSerOpt);
-				//Console.WriteLine($"{outcomes.Count} entries found.");
-				SetupOutcomeMatchers(outcomes);
+				outcomeString = networkOutcomeString;
+				networkOutcome = true;
 			}
 			else
 			{
-				SetupOutcomeMatchers(null);
+				outcomeString = localOutcomeString;
+			}
+
+			m_simpleOutcomes = new List<(string, string)>();
+			if (outcomeString != "")
+			{
+				var lines = outcomeString.Split("\r\n");
+				foreach(var line in lines)
+				{
+					if (line.Trim() != string.Empty)
+					{
+						var halves = line.Split('|');
+						m_simpleOutcomes.Add((halves[0], halves[1]));
+					}
+				}
 			}
 
 			//m_playerNameToId = new Dictionary<string, string>();
@@ -842,31 +857,18 @@ namespace Cauldron
 			if (newState.lastUpdate.Contains("is Shelled and cannot escape!"))
 			{
 				m_currEvent.eventType = GameEventType.SHELLED_ATBAT;
-				// TODO: deduce the player ID
 				return true;
 			}
 
 			if(newState.lastUpdate.Contains("The Black Hole swallows the Runs"))
 			{
 				m_currEvent.eventType = GameEventType.BLACK_HOLE;
-
-				Outcome outcome = new Outcome(newState.lastUpdate);
-				outcome.eventType = OutcomeType.BLACK_HOLE;
-				outcome.entityId = newState.BatterTeamId;
-
-				m_currEvent.outcomes.Add(outcome);
 				return true;
 			}
 
 			if(newState.lastUpdate.Contains("Sun 2 smiles."))
 			{
 				m_currEvent.eventType = GameEventType.SUN_2;
-
-				Outcome outcome = new Outcome(newState.lastUpdate);
-				outcome.eventType = OutcomeType.SUN_2;
-				outcome.entityId = newState.BatterTeamId;
-
-				m_currEvent.outcomes.Add(outcome);
 				return true;
 			}
 
@@ -874,190 +876,19 @@ namespace Cauldron
 		}
 
 
-		class OutcomeMatcher
+		private List<(string, string)> m_simpleOutcomes;
+
+		private void UpdateOutcomes(Game newState)
 		{
-			string m_regex;
-			IList<(string, string)> m_playerOutcomes;
-			IList<string> m_noneOutcomes;
-
-			public OutcomeMatcher(string r, IList<(string, string)> p)
+			foreach(var outcome in m_simpleOutcomes)
 			{
-				m_regex = r;
-				m_playerOutcomes = p;
-				m_noneOutcomes = new List<string>();
-			}
-
-			public OutcomeMatcher(OutcomeDefinition od)
-			{
-				m_regex = od.Regex;
-				m_playerOutcomes = new List<(string, string)>();
-				m_noneOutcomes = new List<string>();
-				foreach(var o in od.Entities)
+				if(Regex.IsMatch(newState.lastUpdate, ".*"+outcome.Item2+".*"))
 				{
-					if(o.EntityType == "player")
-					{
-						m_playerOutcomes.Add((o.OutcomeType, o.CaptureName));
-					}
-					if(o.EntityType == "none")
-					{
-						m_noneOutcomes.Add(o.OutcomeType);
-					}
+					Outcome o = new Outcome(newState.lastUpdate);
+					o.eventType = outcome.Item1;
+					m_currEvent.outcomes.Add(o);
 				}
 			}
-
-			private static async Task<string> TryGetPlayerId(HttpClient client, string name)
-			{
-				HttpResponseMessage response = await client.GetAsync($"playerIdsByName?name={HttpUtility.UrlEncode(name)}");
-
-				if (response.IsSuccessStatusCode)
-				{
-					string strResponse = await response.Content.ReadAsStringAsync();
-					var list = JsonSerializer.Deserialize<IEnumerable<Dictionary<string, string>>>(strResponse);
-
-					if (list.Count() > 0)
-						return list.First()["player_id"];
-					else
-						return "UNKNOWN";
-				}
-				else
-				{
-					return "UNKNOWN";
-				}
-			}
-
-			private static async Task TryPopulatePlayerId(HttpClient client, Outcome o, string name)
-			{
-				o.entityId = await TryGetPlayerId(client, name);
-			}
-			public static async Task CreateAndAddPlayerOutcome(HttpClient client, GameEvent ev, string text, string type, string playerName)
-			{
-				Outcome o = new Outcome(text);
-				o.eventType = type;
-				await TryPopulatePlayerId(client, o, playerName);
-				ev.outcomes.Add(o);
-			}
-
-			public async Task Process(HttpClient client, GameEvent ev, string update)
-			{
-				var match = Regex.Match(update, m_regex, RegexOptions.ExplicitCapture);
-				if(match.Success)
-				{
-					foreach(var kvp in m_playerOutcomes)
-					{
-						await CreateAndAddPlayerOutcome(client, ev, update, kvp.Item1, match.Groups[kvp.Item2].Value);
-					}
-					foreach(var n in m_noneOutcomes)
-					{
-						Outcome o = new Outcome(update);
-						o.eventType = n;
-						ev.outcomes.Add(o);
-					}
-				}
-			}
-		}
-
-		private static string feedbackRegex = @".*feedback.*\.\.\. (.+) is now up to bat\.";
-		private static string teamReverbRegex = @"Reverberations are at (?:\w+) levels! The (.+) lost (.+)";
-
-		private List<OutcomeMatcher> m_outcomeMatchers;
-
-		private void SetupOutcomeMatchers(List<OutcomeDefinition> defs)
-		{
-
-			m_outcomeMatchers = new List<OutcomeMatcher>();
-
-			if (defs != null)
-			{
-				foreach (var od in defs)
-				{
-					m_outcomeMatchers.Add(new OutcomeMatcher(od));
-				}
-			}
-			else
-			{
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"A Debt was collected.*(pitch|hitt)er (.+)! Replaced by (.+) The Instability (chains|spreads) to (.+)'s (.+)!",
-				//	new List<(string, int)>() { (OutcomeType.DEBT_PAID, 2), (OutcomeType.UNSTABLE_CHAINED, 6) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) hits (.+) with a pitch! (.+) is now Unstable!",
-				//	new List<(string, int)>() { (OutcomeType.BEANED_HITTER, 1), (OutcomeType.BEANED_PITCHER, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"The Blooddrain gurgled! (.+) siphoned some of (.+)'s.*",
-				//	new List<(string, int)>() { (OutcomeType.BLOOD_DRAIN_SIPHONER, 1), (OutcomeType.BLOOD_DRAIN_VICTIM, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"Reality begins to flicker...but (.+) resists! (.+) is affect",
-				//	new List<(string, int)>() { (OutcomeType.FEEDBACK_BLOCKED, 1), (OutcomeType.FEEDBACK_BLOCKED, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*incinerated.*(pitch|hitt)er (.+)! Replaced by (.+)",
-				//	new List<(string, int)>() { (OutcomeType.INCINERATION, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"The Birds pecked (.+) free!",
-				//	new List<(string, int)>() { (OutcomeType.SHELL_CRACKED, 1) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"(.+) is partying!",
-				//	new List<(string, int)>() { (OutcomeType.PARTYING, 1) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@"Reverberations are at (\w+) levels! (.+) is now .*",
-				//	new List<(string, int)>() { (OutcomeType.REVERB_PLAYER, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had a yummy reaction!",
-				//	new List<(string, int)>() { (OutcomeType.PEANUT_GOOD, 2) }));
-				//m_outcomeMatchers.Add(new OutcomeMatcher(@".*(pitch|hitt)er (.+) swallowed.*had an allergic reaction!",
-				//	new List<(string, int)>() { (OutcomeType.PEANUT_BAD, 2) }));
-			}
-		}
-
-		private async Task UpdateOutcomes(Game newState)
-		{
-			foreach(var matcher in m_outcomeMatchers)
-			{
-				await matcher.Process(m_client, m_currEvent, newState.lastUpdate);
-			}
-
-			var match = Regex.Match(newState.lastUpdate, feedbackRegex);
-			if(match.Success)
-			{
-				// Old player
-				Outcome o = new Outcome(newState.lastUpdate);
-				o.eventType = OutcomeType.FEEDBACK;
-				o.entityId = m_currEvent.batterId;
-				m_currEvent.outcomes.Add(o);
-
-				// New player
-				await OutcomeMatcher.CreateAndAddPlayerOutcome(m_client, m_currEvent, newState.lastUpdate, OutcomeType.FEEDBACK, match.Groups[1].Value);
-			}
-
-			match = Regex.Match(newState.lastUpdate, teamReverbRegex);
-			if(match.Success)
-			{
-				var teamName = match.Groups[1].Value;
-				var status = match.Groups[2].Value;
-
-				Outcome e = new Outcome(newState.lastUpdate);
-				if (newState.homeTeamNickname == teamName)
-				{
-					e.entityId = newState.homeTeam;
-				}
-				else if(newState.awayTeamNickname == teamName)
-				{
-					e.entityId = newState.awayTeam;
-				}
-				else
-				{
-					AddParsingError(m_currEvent, $"Couldn't find which team ({teamName}) is reverberating!");
-				}
-
-				switch (status)
-				{
-					case "control of their pitchers!":
-						e.eventType = OutcomeType.REVERB_PITCHERS;
-						break;
-					case "control of their hitters!":
-						e.eventType = OutcomeType.REVERB_HITTERS;
-						break;
-					case "control of several players!":
-						e.eventType = OutcomeType.REVERB_SEVERAL;
-						break;
-					case "all control!":
-						e.eventType = OutcomeType.REVERB_ALL;
-						break;
-				}
-
-				m_currEvent.outcomes.Add(e);
-			}
-
-
 
 		}
 
@@ -1507,9 +1338,9 @@ namespace Cauldron
 
 				// Call after UpdateBaseRunning
 				UpdateScoreChanges(newState);
-
-				await UpdateOutcomes(newState);
 			}
+
+			UpdateOutcomes(newState);
 
 			// Unknown or not currently handled event
 			if (m_currEvent.eventType == null)
