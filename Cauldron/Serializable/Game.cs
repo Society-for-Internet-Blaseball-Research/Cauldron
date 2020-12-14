@@ -92,6 +92,8 @@ namespace Cauldron
 
 		public int? tournament { get; set; }
 
+		public List<string> outcomes { get; set; }
+
 		public bool Equals([AllowNull] Game other)
 		{
 			// don't compare the lists
