@@ -82,6 +82,10 @@ namespace Cauldron
 		public float awayScore { get; set; }
 		public int homeStrikeCount { get; set; }
 		public int awayStrikeCount { get; set; }
+		public int homeBallCount { get; set; }
+		public int awayBallCount { get; set; }
+		public int homeBaseCount { get; set; }
+		public int awayBaseCount { get; set; }
 		public int batterCount { get; set; }
 		[DbAlias("pitches")]
 		public List<char> pitchesList { get; set; }

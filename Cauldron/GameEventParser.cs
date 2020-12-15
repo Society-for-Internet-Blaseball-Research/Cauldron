@@ -314,8 +314,12 @@ namespace Cauldron
 			currEvent.topOfInning = newState.topOfInning;
 			currEvent.outsBeforePlay = m_oldState.halfInningOuts;
 
-			currEvent.homeStrikeCount = newState.homeStrikes.GetValueOrDefault();
-			currEvent.awayStrikeCount = newState.awayStrikes.GetValueOrDefault();
+			currEvent.homeStrikeCount = newState.homeStrikes ?? 3;
+			currEvent.awayStrikeCount = newState.awayStrikes ?? 3;
+			currEvent.homeBallCount = newState.homeBalls ?? 4;
+			currEvent.awayBallCount = newState.awayBalls ?? 4;
+			currEvent.homeBaseCount = newState.homeBases ?? 4;
+			currEvent.awayBaseCount = newState.awayBases ?? 4;
 
 			currEvent.homeScore = newState.homeScore;
 			currEvent.awayScore = newState.awayScore;
