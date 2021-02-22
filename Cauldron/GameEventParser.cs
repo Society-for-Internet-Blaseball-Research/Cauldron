@@ -1381,6 +1381,7 @@ namespace Cauldron
 			// If we had outs or hits or a walk or a steal, emit
 			// OR IF THE GAME IS OVER, duh
 			// or hit by a pitch or a wild pitch
+			// or the special Black Hole and Sun2 events
 			if(m_currEvent.outsOnPlay > 0 
 				|| m_currEvent.basesHit > 0 
 				|| m_currEvent.isSteal 
@@ -1388,6 +1389,8 @@ namespace Cauldron
 				|| m_currEvent.isLastGameEvent
 				|| m_currEvent.eventType == GameEventType.HIT_BY_PITCH
 				|| m_currEvent.eventType == GameEventType.WILD_PITCH
+				|| m_currEvent.eventType == GameEventType.BLACK_HOLE
+				|| m_currEvent.eventType == GameEventType.SUN_2
 				|| m_inningState == InningState.PlayEnded)
 			{
 				EmitEvent(newState, timeStamp);
