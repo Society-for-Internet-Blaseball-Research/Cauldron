@@ -1045,6 +1045,7 @@ namespace Cauldron
 				IsNewBatterMessage(newState))
 			{
 				m_inningState = InningState.BatterMessage;
+
 				return true;
 			}
 			// BatterMessage goes to ValidBatter on an update with a non-null batter ID
@@ -1068,6 +1069,15 @@ namespace Cauldron
 				(newState.BatterId == m_oldState.BatterId))
 			{
 				// Stay in ValidBatter
+				return true;
+			}
+			// In Season 3 and earlier the state machine wasn't as good; the fielding team had valid batters still listed
+			// in every update so there was no play-ending NULL batter when half-innings swap
+			else if((m_inningState == InningState.ValidBatter || m_inningState == InningState.BatterMessage) &&
+				(newState.BatterId != m_oldState.BatterId) &&
+				(newState.season <= 2))
+			{
+				m_inningState = InningState.PlayEnded;
 				return true;
 			}
 			// PlayEnded can go to GameOver when the game completes
