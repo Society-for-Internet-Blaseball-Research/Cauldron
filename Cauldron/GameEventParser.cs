@@ -391,21 +391,22 @@ namespace Cauldron
 				{
 					m_currEvent.eventType = GameEventType.HIT_BY_PITCH;
 				}
-				else if (newState.lastUpdate.Contains("Mild pitch!"))
-				{
-					m_currEvent.isWildPitch = true;
-
-					if(newState.lastUpdate.Contains("Runners advance on the pathetic play!"))
-					{
-						m_currEvent.eventType = GameEventType.WILD_PITCH;
-					}
-				}
 
 			}
-			
+
+			if (newState.lastUpdate.Contains("Mild pitch!"))
+			{
+				m_currEvent.isWildPitch = true;
+
+				if (newState.lastUpdate.Contains("Runners advance on the pathetic play!"))
+				{
+					m_currEvent.eventType = GameEventType.WILD_PITCH;
+				}
+			}
+
 
 			// Oops, we hit a gap, lets see if we can fill it in
-			if(newStrikes + newBalls > 1)
+			if (newStrikes + newBalls > 1)
 			{
 				// Error: We skipped *something*, we should log it
 				AddFixedError(m_currEvent, $"A single update had more than one pitch, but we fixed it");
@@ -463,7 +464,7 @@ namespace Cauldron
 			else if (newBalls == 1)
 			{
 				m_currEvent.pitchesList.Add('B');
-				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("walk.")))
+				if (!(newState.lastUpdate.Contains("Ball.") || newState.lastUpdate.Contains("Ball,") || newState.lastUpdate.Contains("walk.")))
 				{
 					AddFixedError(m_currEvent, $"We missed a single ball, but we fixed it");
 				}
