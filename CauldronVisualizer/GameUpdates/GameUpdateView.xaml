@@ -29,6 +29,13 @@
             </TextBlock.Text>
         </TextBlock>
 
+        <TextBlock 
+            Grid.Row="2"
+            Style="{StaticResource TinyText}"
+            HorizontalAlignment="Right"
+            Text="{Binding Update.playCount}">
+        </TextBlock>
+
         <controls:MatchupAndScore
             HomeTeamName="{Binding Update.homeTeamName}"
             HomeTeamScore="{Binding Update.homeScore}"

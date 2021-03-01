@@ -48,7 +48,8 @@ namespace Cauldron
 		BatterMessage,
 		ValidBatter,
 		PlayEnded,
-		GameOver
+		GameOver,
+		OutingMessage
 	}
 
 	/// <summary>
@@ -279,6 +280,11 @@ namespace Cauldron
 			return (newState.lastUpdate.Contains("Top of ") || newState.lastUpdate.Contains("Bottom of "));
 		}
 
+		private bool IsOutingMessage(Game newState)
+		{
+			return (newState.lastUpdate.Contains("is now an Outing"));
+		}
+
 		private bool IsNewBatterMessage(Game newState)
 		{
 			return newState.lastUpdate.Contains("batting for the");
@@ -484,7 +490,11 @@ namespace Cauldron
 		{
 			// If the inning suddenly changed, that means this play got all the rest of the outs
 			// TODO: triple plays if implemented
-			if ((newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts > 0) ||
+			//if ((newState.topOfInning != m_oldState.topOfInning && m_oldState.halfInningOuts > 0) ||
+			//	endOfGameHappened(m_oldState, newState))
+			
+			// The inning flags no longer change right on the event that caused the out, so literally our only detection is outs snapping back to 0 :(
+			if ( (m_oldState.halfInningOuts > 0 && newState.halfInningOuts == 0) ||
 				endOfGameHappened(m_oldState, newState))
 			{
 				m_currEvent.outsOnPlay = 3 - m_oldState.halfInningOuts;
@@ -1034,8 +1044,8 @@ namespace Cauldron
 				m_inningState = InningState.GameStart;
 				return true;
 			}
-			// GameStart and PlayEnded go to HalfInningStart on a "Top of" or "Bottom of"
-			else if((m_inningState == InningState.GameStart || m_inningState == InningState.PlayEnded) && 
+			// GameStart, OutingMessage and PlayEnded go to HalfInningStart on a "Top of" or "Bottom of"
+			else if((m_inningState == InningState.GameStart || m_inningState == InningState.PlayEnded || m_inningState == InningState.OutingMessage) && 
 				IsStartOfInningMessage(newState))
 			{
 				m_inningState = InningState.HalfInningStart;
@@ -1047,6 +1057,17 @@ namespace Cauldron
 			{
 				m_inningState = InningState.BatterMessage;
 
+				return true;
+			}
+			else if((m_inningState == InningState.PlayEnded && IsOutingMessage(newState)))
+			{
+				m_inningState = InningState.OutingMessage;
+
+				return true;
+			}
+			else if(m_inningState == InningState.HalfInningStart && newState.BatterId == null)
+			{
+				// Just stay in HalfInningStart until we see the BatterMessage
 				return true;
 			}
 			// BatterMessage goes to ValidBatter on an update with a non-null batter ID
@@ -1093,6 +1114,10 @@ namespace Cauldron
 			// FAILURE STATES
 			// All the valid transitions were above - below we need to return FALSE but still get ourselves back into the correct state
 
+			if(IsOutingMessage(newState))
+			{
+				m_inningState = InningState.OutingMessage;
+			}
 			if(IsNewBatterMessage(newState))
 			{
 				// Bad transition, but we know we're back in BatterMessage
@@ -1222,7 +1247,7 @@ namespace Cauldron
 
 			// DATA GAP DETECTION
 			// If we had an invalid transition on our inning state machine, something weird happened
-			if(!validInningState || !validPlayCount)
+			if(!validInningState)
 			{
 				int missedOuts = outsBetween(m_oldState, newState);
 
