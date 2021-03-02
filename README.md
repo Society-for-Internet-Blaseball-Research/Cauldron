@@ -1,3 +1,8 @@
+# IMPORTANT NOTE
+
+This repo is now deprecated! 
+Further Cauldron development is in https://github.com/Society-for-Internet-Blaseball-Research/prophesizer
+
 # Cauldron
 Put in blaseball game update JSON, and pull out SIBR game event JSON
 
